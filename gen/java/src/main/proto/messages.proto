@@ -1,0 +1,43 @@
+syntax = "proto3";
+package dev.emortal.kurushimi;
+
+option java_package = "dev.emortal.api.kurushimi";
+option java_multiple_files = true;
+option go_package = "github.com/emortalmc/kurushimi/pkg/pb";
+
+import "google/protobuf/timestamp.proto";
+
+message Ticket {
+  string id = 1;
+  string player_id = 2;
+  google.protobuf.Timestamp created_at = 3;
+
+  SearchFields search_fields = 4;
+}
+
+message SearchFields {
+  map<string, string> string_args = 1;
+  repeated string tags = 2;
+}
+
+message Match {
+  string id = 1;
+  string profile_name = 2;
+
+  repeated Ticket tickets = 3;
+  optional Assignment assignment = 4;
+}
+
+message Assignment {
+  string server_id = 1;
+  string server_address = 2;
+  uint32 server_port = 3;
+}
+
+message PendingMatch {
+  string id = 1;
+  string profile_name = 2;
+
+  repeated Ticket tickets = 3;
+  google.protobuf.Timestamp teleport_time = 4;
+}

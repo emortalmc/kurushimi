@@ -1,6 +1,9 @@
 plugins {
     id("java-library")
     id("maven-publish")
+
+    // gRPC
+    id("com.google.protobuf") version "0.8.18"
 }
 
 group "dev.emortal.api.kurushimi"
@@ -8,19 +11,30 @@ version "1.0"
 
 def grpcVersion = "1.50.2"
 def protobufVersion = "3.21.9"
+def protocVersion = protobufVersion
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-//    protobuf("com.google.protobuf:protobuf-java:${protobufVersion}")
+    protobuf("com.google.protobuf:protobuf-java:${protobufVersion}")
     api("com.google.protobuf:protobuf-java:3.21.8")
     api("org.apache.tomcat:annotations-api:6.0.53")
 
     api("io.grpc:grpc-netty:${grpcVersion}")
     api("io.grpc:grpc-stub:${grpcVersion}")
     api("io.grpc:grpc-protobuf:${grpcVersion}")
+}
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:${protocVersion}" }
+    plugins {
+        grpc { artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}" }
+    }
+    generateProtoTasks {
+        all()*.plugins { grpc {} }
+    }
 }
 
 publishing {
@@ -54,6 +68,20 @@ publishing {
             version = commitHash ?: releaseVersion ?: "local"
 
             from components.java
+        }
+    }
+}
+
+// Inform IDEs like IntelliJ IDEA, Eclipse or NetBeans about the generated code.
+sourceSets {
+    main {
+        java {
+            srcDirs "build/generated/source/proto/main/grpc"
+            srcDirs "build/generated/source/proto/main/java"
+        }
+
+        proto {
+            srcDir "src/proto"
         }
     }
 }
