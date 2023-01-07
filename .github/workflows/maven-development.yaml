@@ -28,6 +28,7 @@ jobs:
         with:
           arguments: publishMavenPublicationToDevelopmentRepository
           gradle-executable: ./gen/java/gradlew
+          build-root-directory: ./gen/java
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_SECRET: ${{ secrets.MAVEN_SECRET }}
