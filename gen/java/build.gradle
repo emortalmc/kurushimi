@@ -1,0 +1,59 @@
+plugins {
+    id("java-library")
+    id("maven-publish")
+}
+
+group "dev.emortal.api.kurushimi"
+version "1.0"
+
+def grpcVersion = "1.50.2"
+def protobufVersion = "3.21.9"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+//    protobuf("com.google.protobuf:protobuf-java:${protobufVersion}")
+    api("com.google.protobuf:protobuf-java:3.21.8")
+    api("org.apache.tomcat:annotations-api:6.0.53")
+
+    api("io.grpc:grpc-netty:${grpcVersion}")
+    api("io.grpc:grpc-stub:${grpcVersion}")
+    api("io.grpc:grpc-protobuf:${grpcVersion}")
+}
+
+publishing {
+
+    repositories {
+        maven {
+            name = "development"
+            url = uri("https://repo.emortal.dev/snapshots")
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_SECRET")
+            }
+        }
+        maven {
+            name = "release"
+            url = uri("https://repo.emortal.dev/releases")
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_SECRET")
+            }
+        }
+    }
+
+    publications {
+        maven(MavenPublication) {
+            groupId = "dev.emortal.api"
+            artifactId = "kurushimi-sdk"
+
+            def commitHash = System.getenv("COMMIT_HASH_SHORT")
+            def releaseVersion = System.getenv("RELEASE_VERSION")
+            version = commitHash ?: releaseVersion ?: "local"
+
+            from components.java
+        }
+    }
+}
