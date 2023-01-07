@@ -27,6 +27,7 @@ type FrontendClient interface {
 	DeleteTicket(ctx context.Context, in *DeleteTicketRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetTicket(ctx context.Context, in *GetTicketRequest, opts ...grpc.CallOption) (*Ticket, error)
 	WatchTicketCountdown(ctx context.Context, in *WatchCountdownRequest, opts ...grpc.CallOption) (Frontend_WatchTicketCountdownClient, error)
+	WatchTicketAssignment(ctx context.Context, in *WatchAssignmentRequest, opts ...grpc.CallOption) (Frontend_WatchTicketAssignmentClient, error)
 }
 
 type frontendClient struct {
@@ -96,6 +97,38 @@ func (x *frontendWatchTicketCountdownClient) Recv() (*WatchCountdownResponse, er
 	return m, nil
 }
 
+func (c *frontendClient) WatchTicketAssignment(ctx context.Context, in *WatchAssignmentRequest, opts ...grpc.CallOption) (Frontend_WatchTicketAssignmentClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Frontend_ServiceDesc.Streams[1], "/dev.emortal.kurushimi.Frontend/WatchTicketAssignment", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &frontendWatchTicketAssignmentClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Frontend_WatchTicketAssignmentClient interface {
+	Recv() (*WatchAssignmentResponse, error)
+	grpc.ClientStream
+}
+
+type frontendWatchTicketAssignmentClient struct {
+	grpc.ClientStream
+}
+
+func (x *frontendWatchTicketAssignmentClient) Recv() (*WatchAssignmentResponse, error) {
+	m := new(WatchAssignmentResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // FrontendServer is the server API for Frontend service.
 // All implementations must embed UnimplementedFrontendServer
 // for forward compatibility
@@ -104,6 +137,7 @@ type FrontendServer interface {
 	DeleteTicket(context.Context, *DeleteTicketRequest) (*emptypb.Empty, error)
 	GetTicket(context.Context, *GetTicketRequest) (*Ticket, error)
 	WatchTicketCountdown(*WatchCountdownRequest, Frontend_WatchTicketCountdownServer) error
+	WatchTicketAssignment(*WatchAssignmentRequest, Frontend_WatchTicketAssignmentServer) error
 	mustEmbedUnimplementedFrontendServer()
 }
 
@@ -122,6 +156,9 @@ func (UnimplementedFrontendServer) GetTicket(context.Context, *GetTicketRequest)
 }
 func (UnimplementedFrontendServer) WatchTicketCountdown(*WatchCountdownRequest, Frontend_WatchTicketCountdownServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchTicketCountdown not implemented")
+}
+func (UnimplementedFrontendServer) WatchTicketAssignment(*WatchAssignmentRequest, Frontend_WatchTicketAssignmentServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchTicketAssignment not implemented")
 }
 func (UnimplementedFrontendServer) mustEmbedUnimplementedFrontendServer() {}
 
@@ -211,6 +248,27 @@ func (x *frontendWatchTicketCountdownServer) Send(m *WatchCountdownResponse) err
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Frontend_WatchTicketAssignment_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchAssignmentRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(FrontendServer).WatchTicketAssignment(m, &frontendWatchTicketAssignmentServer{stream})
+}
+
+type Frontend_WatchTicketAssignmentServer interface {
+	Send(*WatchAssignmentResponse) error
+	grpc.ServerStream
+}
+
+type frontendWatchTicketAssignmentServer struct {
+	grpc.ServerStream
+}
+
+func (x *frontendWatchTicketAssignmentServer) Send(m *WatchAssignmentResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Frontend_ServiceDesc is the grpc.ServiceDesc for Frontend service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -235,6 +293,11 @@ var Frontend_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "WatchTicketCountdown",
 			Handler:       _Frontend_WatchTicketCountdown_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "WatchTicketAssignment",
+			Handler:       _Frontend_WatchTicketAssignment_Handler,
 			ServerStreams: true,
 		},
 	},

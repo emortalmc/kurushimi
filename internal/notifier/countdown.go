@@ -7,16 +7,15 @@ import (
 )
 
 // map [ticketId][]pb.Frontend_WatchTicketCountdownServer
-var listeners = make(map[string][]pb.Frontend_WatchTicketCountdownServer)
-var logger, _ = zap.NewDevelopment()
+var countdownListeners = make(map[string][]pb.Frontend_WatchTicketCountdownServer)
 
 func AddCountdownListener(ticketId string, listener pb.Frontend_WatchTicketCountdownServer) {
-	listeners[ticketId] = append(listeners[ticketId], listener)
+	countdownListeners[ticketId] = append(countdownListeners[ticketId], listener)
 }
 
 func NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) {
 	for _, ticket := range tickets {
-		for _, listener := range listeners[ticket.Id] {
+		for _, listener := range countdownListeners[ticket.Id] {
 			err := listener.Send(&pb.WatchCountdownResponse{
 				TeleportTime: teleportTime,
 			})
@@ -30,9 +29,10 @@ func NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) 
 
 func NotifyCountdownCancellation(tickets []*pb.Ticket) {
 	for _, ticket := range tickets {
-		for _, listener := range listeners[ticket.Id] {
+		for _, listener := range countdownListeners[ticket.Id] {
+			cancelled := true
 			err := listener.Send(&pb.WatchCountdownResponse{
-				Cancelled: true,
+				Cancelled: &cancelled,
 			})
 
 			if err != nil {
@@ -43,5 +43,5 @@ func NotifyCountdownCancellation(tickets []*pb.Ticket) {
 }
 
 func RemoveCountdownListener(ticketId string) {
-	listeners[ticketId] = nil
+	countdownListeners[ticketId] = nil
 }

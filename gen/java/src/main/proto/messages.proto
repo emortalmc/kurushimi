@@ -13,6 +13,11 @@ message Ticket {
   google.protobuf.Timestamp created_at = 3;
 
   SearchFields search_fields = 4;
+
+  // notify_proxy: If not specified, true.
+  // If true, the proxy will be notified of a ticket's assignment.
+  // If false, it is expected that you use WatchTicketAssignment to know when a ticket has been assigned.
+  optional bool notify_proxy = 5;
 }
 
 message SearchFields {

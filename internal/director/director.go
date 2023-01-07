@@ -148,14 +148,14 @@ func handlePendingMatches(ctx context.Context, pendingMatches []*pb.PendingMatch
 }
 
 func assign(ctx context.Context, p profile.ModeProfile, matches []*pb.Match) error {
-	// mock assign for now
+	// todo: mock assign for now
 	for _, match := range matches {
 		match.Assignment = &pb.Assignment{
 			ServerId:      "mock-gameserver-xxxx",
 			ServerAddress: "0.0.0.0",
 			ServerPort:    rand.Uint32(),
 		}
-		err := notifier.NotifyTransport(match)
+		err := notifier.NotifyMatchTeleport(ctx, match)
 		if err != nil {
 			logger.Error("Failed to notify transport", zap.Error(err))
 			continue

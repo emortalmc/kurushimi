@@ -15,6 +15,7 @@ service Frontend {
   rpc DeleteTicket (DeleteTicketRequest) returns (google.protobuf.Empty) {}
   rpc GetTicket (GetTicketRequest) returns (Ticket) {}
   rpc WatchTicketCountdown (WatchCountdownRequest) returns (stream WatchCountdownResponse) {}
+  rpc WatchTicketAssignment (WatchAssignmentRequest) returns (stream WatchAssignmentResponse) {}
 }
 
 message CreateTicketRequest {
@@ -36,4 +37,12 @@ message WatchCountdownRequest {
 message WatchCountdownResponse {
   optional bool cancelled = 1;
   optional google.protobuf.Timestamp teleport_time = 2;
+}
+
+message WatchAssignmentRequest {
+  string ticket_id = 1;
+}
+
+message WatchAssignmentResponse {
+  Assignment assignment = 1;
 }

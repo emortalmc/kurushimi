@@ -13,13 +13,12 @@ import (
 	v12 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kurushimi/internal/utils/kubernetes"
-	"kurushimi/internal/utils/pbutils"
 	"kurushimi/pkg/pb"
 	"os"
 )
 
 var (
-	trackerEnabled = false
+	trackerEnabled = isTrackerEnabled()
 
 	namespace = os.Getenv("NAMESPACE")
 
@@ -27,11 +26,24 @@ var (
 	playerTrackerClient = createPlayerTrackerClient()
 )
 
-func NotifyTransport(match *pb.Match) error {
+func notifyTransport(ctx context.Context, match *pb.Match) error {
 	if !trackerEnabled {
 		return status.Error(codes.Unavailable, "Match notifications are not available")
 	}
-	resp, err := playerTrackerClient.GetPlayerServers(context.Background(), &player_tracker.PlayersRequest{PlayerIds: pbutils.ParsePlayersFromMatch(match)})
+
+	// Get the player IDs ignoring tickets marked to not notify the proxy
+	var players []string
+	for _, ticket := range match.Tickets {
+		if ticket.NotifyProxy != nil && ticket.GetNotifyProxy() == false {
+			continue
+		}
+		players = append(players, ticket.GetPlayerId())
+	}
+	if len(players) == 0 {
+		return nil
+	}
+
+	resp, err := playerTrackerClient.GetPlayerServers(ctx, &player_tracker.PlayersRequest{PlayerIds: players})
 	if err != nil {
 		return status.Errorf(codes.Internal, "Couldn't get player servers: %s", err)
 	}
@@ -47,7 +59,7 @@ func NotifyTransport(match *pb.Match) error {
 	}
 
 	for sId, pIds := range serverPlayers {
-		pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.Background(), sId, v1.GetOptions{})
+		pod, err := kubeClient.CoreV1().Pods(namespace).Get(ctx, sId, v1.GetOptions{})
 		if err != nil {
 			return status.Errorf(codes.Internal, "Error retrieving Pod from Kubernetes API: %s", err)
 		}
@@ -61,9 +73,9 @@ func NotifyTransport(match *pb.Match) error {
 		client := player_transporter.NewVelocityPlayerTransporterClient(conn)
 
 		assignment := match.Assignment
-		_, err = client.SendToServer(context.Background(), &player_transporter.TransportRequest{
+		_, err = client.SendToServer(ctx, &player_transporter.TransportRequest{
 			Server: &server_discovery.ConnectableServer{
-				Id:      assignment.ServerId, // todo
+				Id:      assignment.ServerId,
 				Address: assignment.ServerAddress,
 				Port:    assignment.ServerPort,
 			},
@@ -93,4 +105,9 @@ func getGrpcPort(pod *v12.Pod) (int32, error) {
 		}
 	}
 	return 0, fmt.Errorf("no grpc port found for server %s", pod.Name)
+}
+
+func isTrackerEnabled() bool {
+	v := os.Getenv("TRACKER_ENABLED")
+	return v == "true"
 }
