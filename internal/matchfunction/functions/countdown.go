@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-// NewMakeCountdownMatches
+// MakeCountdownMatches
 // 1. Fill existing PendingMatches with new tickets from the pool
 // Communicate to players in the PendingMatch the time until the match is made and the tickets in the match
 // 2. Create new PendingMatches from the remaining tickets in the pool
-func NewMakeCountdownMatches(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+func MakeCountdownMatches(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
 	if len(tickets) == 0 {
 		return nil, pendingMatches, nil
 	}
@@ -102,6 +102,8 @@ func makePendingMatches(profile profile.ModeProfile, tickets []*pb.Ticket) ([]*p
 		}
 		pendingMatches = append(pendingMatches, pendingMatch)
 		tickets = tickets[math.Min(len(tickets), profile.MaxPlayers):]
+
+		notifier.NotifyCountdown(pendingMatch.Tickets, pendingMatch.TeleportTime)
 	}
 
 	return tickets, pendingMatches

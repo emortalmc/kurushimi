@@ -37,19 +37,32 @@ var ModeProfiles = map[string]profile.ModeProfile{
 			return matches, nil, err
 		},
 	},
-	//"block_sumo": {
-	//	Name:       "block_sumo",
-	//	GameName:   "game.block_sumo",
-	//	FleetName:  "block-sumo",
-	//	MinPlayers: 2,
-	//	MaxPlayers: 12,
-	//	Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
-	//		return selector.CommonSelector(profile, match)
-	//	},
-	//	MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
-	//		return functions.NewMakeCountdownMatches(profile, pendingMatches, tickets)
-	//	},
-	//},
+	"block_sumo": {
+		Name:       "block_sumo",
+		GameName:   "game.block_sumo",
+		FleetName:  "block-sumo",
+		MinPlayers: 2,
+		MaxPlayers: 12,
+		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
+			return selector.CommonSelector(profile, match)
+		},
+		MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+			return functions.MakeCountdownMatches(profile, pendingMatches, tickets)
+		},
+	},
+	"parkour_tag": {
+		Name:       "parkour_tag",
+		GameName:   "game.parkour_tag",
+		FleetName:  "parkour-tag",
+		MinPlayers: 2,
+		MaxPlayers: 12,
+		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
+			return selector.CommonSelector(profile, match)
+		},
+		MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+			return functions.MakeCountdownMatches(profile, pendingMatches, tickets)
+		},
+	},
 	//"minesweeper": {
 	//	Name:       "minesweeper",
 	//	GameName:   "game.minesweeper",
