@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	logger, _ = zap.NewProduction()
+	logger = zap.S()
 
 	redsync *rs.Redsync
 

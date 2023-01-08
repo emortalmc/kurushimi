@@ -8,7 +8,7 @@ import (
 	"kurushimi/pkg/pb"
 )
 
-var logger, _ = zap.NewProduction()
+var logger = zap.S()
 
 func Run(ctx context.Context, profile profile.ModeProfile) ([]*pb.Match, []*pb.PendingMatch, error) {
 	tickets, err := statestore.GetAllTickets(ctx, profile.GameName)

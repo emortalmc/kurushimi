@@ -6,7 +6,6 @@ option java_multiple_files = true;
 option go_package = "github.com/emortalmc/kurushimi/pkg/pb";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/duration.proto";
 
 message Ticket {
   string id = 1;
