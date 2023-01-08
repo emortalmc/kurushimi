@@ -6,11 +6,16 @@ option java_multiple_files = true;
 option go_package = "github.com/emortalmc/kurushimi/pkg/pb";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 
 message Ticket {
   string id = 1;
   string player_id = 2;
   google.protobuf.Timestamp created_at = 3;
+
+  // A TTL for a ticket is useful if it is created to connect to a lobby
+  // If the ticket gets hung, it is no longer valid
+//  google.protobuf.Duration expire_after = 4;
 
   SearchFields search_fields = 4;
 

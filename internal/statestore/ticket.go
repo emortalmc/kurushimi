@@ -19,7 +19,7 @@ func CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	value, err := proto.Marshal(ticket)
 	if err != nil {
@@ -30,6 +30,7 @@ func CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "Failed to set ticket %v", err)
 	}
+
 	return nil
 }
 
@@ -38,7 +39,7 @@ func GetTicket(ctx context.Context, ticketId string) (*pb.Ticket, error) {
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	value, err := redis.Bytes(redisConn.Do("GET", ticketPrefix+ticketId))
 	if err != nil {
@@ -66,7 +67,7 @@ func GetAllTickets(ctx context.Context, game string) ([]*pb.Ticket, error) {
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	ticketIds, err := redis.Strings(redisConn.Do("SMEMBERS", allTickets))
 	if err != nil {
@@ -96,7 +97,7 @@ func DeleteTicket(ctx context.Context, ticketId string) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("DEL", ticketPrefix+ticketId)
 	if err != nil {
@@ -110,7 +111,7 @@ func IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("SADD", allTickets, ticket.Id)
 	if err != nil {
@@ -124,7 +125,7 @@ func UnIndexTicket(ctx context.Context, ticketId string) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("SREM", allTickets, ticketId)
 	if err != nil {

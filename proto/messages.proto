@@ -12,6 +12,10 @@ message Ticket {
   string player_id = 2;
   google.protobuf.Timestamp created_at = 3;
 
+  // A TTL for a ticket is useful if it is created to connect to a lobby
+  // If the ticket gets hung, it is no longer valid
+//  google.protobuf.Duration expire_after = 4;
+
   SearchFields search_fields = 4;
 
   // notify_proxy: If not specified, true.

@@ -20,7 +20,7 @@ func CreatePendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	value, err := proto.Marshal(pMatch)
 	if err != nil {
@@ -39,7 +39,7 @@ func GetPendingMatch(ctx context.Context, pMatchId string) (*pb.PendingMatch, er
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	value, err := redis.Bytes(redisConn.Do("GET", pendingMatchPrefix+pMatchId))
 	if err != nil {
@@ -67,7 +67,7 @@ func GetAllPendingMatches(ctx context.Context, profile profile.ModeProfile) ([]*
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	value, err := redis.Strings(redisConn.Do("SMEMBERS", allPendingMatches))
 	if err != nil {
@@ -93,7 +93,7 @@ func DeletePendingMatch(ctx context.Context, pMatchId string) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("DEL", pendingMatchPrefix+pMatchId)
 	if err != nil {
@@ -108,7 +108,7 @@ func IndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("SADD", allPendingMatches, pMatch.Id)
 	if err != nil {
@@ -123,7 +123,7 @@ func UnIndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("SREM", allPendingMatches, pMatch.Id)
 	if err != nil {

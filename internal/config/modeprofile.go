@@ -23,33 +23,33 @@ var ModeProfiles = map[string]profile.ModeProfile{
 	//		return matches, nil, err
 	//	},
 	//},
-	//"lobby": {
-	//	Name:       "lobby",
-	//	GameName:   "game.lobby",
-	//	FleetName:  "lobby",
-	//	MinPlayers: 1,
-	//	MaxPlayers: 50,
-	//	Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
-	//		return selector.CommonPlayerBasedSelector(profile, match, int64(len(match.Tickets)))
-	//	},
-	//	MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
-	//		matches, err := functions.MakeInstantMatches(profile, tickets)
-	//		return matches, nil, err
-	//	},
-	//},
-	"block_sumo": {
-		Name:       "block_sumo",
-		GameName:   "game.block_sumo",
-		FleetName:  "block-sumo",
-		MinPlayers: 2,
-		MaxPlayers: 12,
+	"lobby": {
+		Name:       "lobby",
+		GameName:   "game.lobby",
+		FleetName:  "lobby",
+		MinPlayers: 1,
+		MaxPlayers: 50,
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
-			return selector.CommonSelector(profile, match)
+			return selector.CommonPlayerBasedSelector(profile, match, int64(len(match.Tickets)))
 		},
 		MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
-			return functions.NewMakeCountdownMatches(profile, pendingMatches, tickets)
+			matches, err := functions.MakeInstantMatches(profile, tickets)
+			return matches, nil, err
 		},
 	},
+	//"block_sumo": {
+	//	Name:       "block_sumo",
+	//	GameName:   "game.block_sumo",
+	//	FleetName:  "block-sumo",
+	//	MinPlayers: 2,
+	//	MaxPlayers: 12,
+	//	Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
+	//		return selector.CommonSelector(profile, match)
+	//	},
+	//	MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+	//		return functions.NewMakeCountdownMatches(profile, pendingMatches, tickets)
+	//	},
+	//},
 	//"minesweeper": {
 	//	Name:       "minesweeper",
 	//	GameName:   "game.minesweeper",

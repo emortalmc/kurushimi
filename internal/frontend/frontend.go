@@ -87,18 +87,16 @@ func (s *frontendService) GetTicket(ctx context.Context, req *pb.GetTicketReques
 
 func (s *frontendService) WatchTicketCountdown(req *pb.WatchCountdownRequest, stream pb.Frontend_WatchTicketCountdownServer) error {
 	notifier.AddCountdownListener(req.TicketId, stream)
-	go func() {
-		<-stream.Context().Done()
-		notifier.RemoveCountdownListener(req.TicketId)
-	}()
+
+	<-stream.Context().Done()
+	notifier.RemoveCountdownListener(req.TicketId)
 	return nil
 }
 
 func (s *frontendService) WatchTicketAssignment(req *pb.WatchAssignmentRequest, stream pb.Frontend_WatchTicketAssignmentServer) error {
 	notifier.AddAssignmentListener(req.TicketId, stream)
-	go func() {
-		<-stream.Context().Done()
-		notifier.RemoveAssignmentListener(req.TicketId)
-	}()
+
+	<-stream.Context().Done()
+	notifier.RemoveAssignmentListener(req.TicketId)
 	return nil
 }

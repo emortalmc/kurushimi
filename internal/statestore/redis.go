@@ -2,9 +2,11 @@ package statestore
 
 import (
 	"context"
+	"fmt"
 	rs "github.com/go-redsync/redsync/v4"
 	"github.com/gomodule/redigo/redis"
 	"go.uber.org/zap"
+	"os"
 	"time"
 )
 
@@ -23,7 +25,7 @@ func HealthCheck() error {
 	if err != nil {
 		return err
 	}
-	defer handleConClose(&redisConn)
+	defer handleConClose(redisConn)
 
 	_, err = redisConn.Do("PING")
 	if err != nil {
@@ -43,7 +45,7 @@ func getHealthCheckPool() *redis.Pool {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialContext(ctx, "tcp", "localhost:6379")
+			return redis.DialContext(ctx, "tcp", getRedisAddress())
 		},
 	}
 }
@@ -59,7 +61,7 @@ func getRedisPool() *redis.Pool {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialContext(ctx, "tcp", "localhost:6379")
+			return redis.DialContext(ctx, "tcp", getRedisAddress())
 		},
 	}
 }
@@ -74,9 +76,18 @@ func testOnBorrow(c redis.Conn, lastUsed time.Time) error {
 	return err
 }
 
-func handleConClose(conn *redis.Conn) {
-	err := (*conn).Close()
+func handleConClose(conn redis.Conn) {
+	err := conn.Close()
 	if err != nil {
 		logger.Error("failed to close redis client connection.", zap.Error(err))
 	}
+}
+
+func getRedisAddress() string {
+	host := "localhost"
+	if eHost := os.Getenv("REDIS_HOST"); eHost != "" {
+		host = eHost
+	}
+
+	return fmt.Sprintf("%s:6379", host)
 }

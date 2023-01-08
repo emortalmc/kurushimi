@@ -1,8 +1,10 @@
 package main
 
 import (
+	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
 	"context"
 	"go.uber.org/zap"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kurushimi/internal/config"
 	"kurushimi/internal/config/profile"
 	"kurushimi/internal/frontend"
@@ -23,6 +25,7 @@ const (
 
 var (
 	logger, _ = zap.NewProduction()
+	namespace = os.Getenv("NAMESPACE")
 )
 
 func main() {
@@ -84,10 +87,7 @@ func run(ctx context.Context, profiles map[string]profile.ModeProfile) {
 			convMatches := handlePendingMatches(ctx, pendingMatches)
 			matches = append(matches, convMatches...)
 
-			if err := assign(ctx, p, matches); err != nil {
-				logger.Error("Failed to assign servers to matches", zap.Error(err))
-				return
-			}
+			assign(ctx, p, matches)
 		}(p)
 	}
 }
@@ -147,19 +147,37 @@ func handlePendingMatches(ctx context.Context, pendingMatches []*pb.PendingMatch
 	return matches
 }
 
-func assign(ctx context.Context, p profile.ModeProfile, matches []*pb.Match) error {
-	// todo: mock assign for now
+func assign(ctx context.Context, p profile.ModeProfile, matches []*pb.Match) {
 	for _, match := range matches {
-		match.Assignment = &pb.Assignment{
-			ServerId:      "mock-gameserver-xxxx",
-			ServerAddress: "0.0.0.0",
-			ServerPort:    rand.Uint32(),
+		if namespace == "" {
+			match.Assignment = &pb.Assignment{
+				ServerId:      "mock-gameserver-xxxx",
+				ServerAddress: "0.0.0.0",
+				ServerPort:    rand.Uint32(),
+			}
+		} else {
+			alloc, err := kubernetes.AgonesClient.AllocationV1().GameServerAllocations(namespace).Create(ctx, p.Selector(p, match), v1.CreateOptions{})
+			if err != nil {
+				logger.Error("Failed to allocate gameserver", zap.Error(err))
+				continue
+			}
+
+			status := alloc.Status
+			if status.State != allocatorv1.GameServerAllocationAllocated {
+				logger.Error("Failed to allocate server", zap.String("matchId", match.Id), zap.Any("status", status))
+				continue
+			}
+			match.Assignment = &pb.Assignment{
+				ServerId:      status.GameServerName,
+				ServerAddress: status.Address,
+				ServerPort:    uint32(status.Ports[0].Port),
+			}
 		}
+		logger.Info("Assigned server to match", zap.String("matchId", match.Id), zap.Any("assignment", match.Assignment))
 		err := notifier.NotifyMatchTeleport(ctx, match)
 		if err != nil {
 			logger.Error("Failed to notify transport", zap.Error(err))
 			continue
 		}
 	}
-	return nil
 }

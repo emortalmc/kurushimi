@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: matchmaker
+  namespace: emortalmc
+  labels:
+    app: matchmaker
+
+spec:
+  containers:
+    - name: matchmaker
+      image: emortalmc/kurushimi:dev
+      imagePullPolicy: Never
+      ports:
+        - name: grpc
+          containerPort: 9090
+
+      env:
+        - name: TRACKER_ENABLED
+          value: "true"
+        - name: REDIS_HOST
+          value: "host.minikube.internal"
+        - name: NAMESPACE
+          value: "emortalmc"
+
+  serviceAccountName: matchmaker
+  automountServiceAccountToken: true
+
+---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: matchmaker
+#  namespace: emortalmc
+#  annotations:
+#    linkerd.io/inject: enabled
+#
+#spec:
+#  type: ClusterIP
+#  ports:
+#    - name: grpc
+#      port: 9090
+#      targetPort: 9090
+#
+#  selector:
+#    app: matchmaker
