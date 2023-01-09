@@ -6,6 +6,7 @@ import (
 	"kurushimi/internal/config/selector"
 	"kurushimi/internal/matchfunction/functions"
 	"kurushimi/pkg/pb"
+	"time"
 )
 
 var ModeProfiles = map[string]profile.ModeProfile{
@@ -24,11 +25,12 @@ var ModeProfiles = map[string]profile.ModeProfile{
 	//	},
 	//},
 	"lobby": {
-		Name:       "lobby",
-		GameName:   "game.lobby",
-		FleetName:  "lobby",
-		MinPlayers: 1,
-		MaxPlayers: 50,
+		Name:            "lobby",
+		GameName:        "game.lobby",
+		FleetName:       "lobby",
+		MatchmakingRate: 500 * time.Millisecond,
+		MinPlayers:      1,
+		MaxPlayers:      50,
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
 			return selector.CommonPlayerBasedSelector(profile, match, int64(len(match.Tickets)))
 		},
@@ -38,11 +40,12 @@ var ModeProfiles = map[string]profile.ModeProfile{
 		},
 	},
 	"block_sumo": {
-		Name:       "block_sumo",
-		GameName:   "game.block_sumo",
-		FleetName:  "block-sumo",
-		MinPlayers: 2,
-		MaxPlayers: 12,
+		Name:            "block_sumo",
+		GameName:        "game.block_sumo",
+		FleetName:       "block-sumo",
+		MatchmakingRate: 2 * time.Second,
+		MinPlayers:      2,
+		MaxPlayers:      12,
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
 			return selector.CommonSelector(profile, match)
 		},
@@ -51,11 +54,12 @@ var ModeProfiles = map[string]profile.ModeProfile{
 		},
 	},
 	"parkour_tag": {
-		Name:       "parkour_tag",
-		GameName:   "game.parkour_tag",
-		FleetName:  "parkour-tag",
-		MinPlayers: 2,
-		MaxPlayers: 12,
+		Name:            "parkour_tag",
+		GameName:        "game.parkour_tag",
+		FleetName:       "parkour-tag",
+		MatchmakingRate: 2 * time.Second,
+		MinPlayers:      2,
+		MaxPlayers:      12,
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
 			return selector.CommonSelector(profile, match)
 		},

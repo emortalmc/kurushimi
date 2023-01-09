@@ -44,52 +44,57 @@ func main() {
 
 	go frontend.Run(ctx)
 
-	// Only run every x milliseconds, but if that has already passed, run immediately.
-	for {
-		lastRunTime := time.Now()
-		run(ctx, modeProfiles)
-		timeSinceLastRun := time.Since(lastRunTime)
-		if timeSinceLastRun < minTimeBetweenRuns {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(minTimeBetweenRuns - timeSinceLastRun):
+	for _, p := range modeProfiles {
+		go func(p profile.ModeProfile) {
+			// Only run every x milliseconds, but if that has already passed, run immediately.
+			for {
+				lastRunTime := time.Now()
+				run(ctx, p)
+				timeSinceLastRun := time.Since(lastRunTime)
+				if timeSinceLastRun < p.MatchmakingRate {
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(p.MatchmakingRate - timeSinceLastRun):
 
+					}
+				}
 			}
-		}
+		}(p)
+	}
+	select {
+	case <-ctx.Done():
+		return
 	}
 }
 
-func run(ctx context.Context, profiles map[string]profile.ModeProfile) {
-	for _, p := range profiles {
-		go func(p profile.ModeProfile) {
-			matches, pendingMatches, err := matchfunction.Run(ctx, p)
-			if err != nil {
-				logger.Info("Failed to fetch matches", zap.String("profileName", p.Name), zap.Error(err))
-				return
-			}
-
-			logger.Info("Generated matches", zap.Int("generated", len(matches)),
-				zap.Int("generatedPending", len(pendingMatches)),
-				zap.String("profileName", p.Name),
-			)
-
-			usedTickets := make([]*pb.Ticket, 0)
-			for _, match := range matches {
-				usedTickets = append(usedTickets, match.Tickets...)
-			}
-			for _, pendingMatch := range pendingMatches {
-				usedTickets = append(usedTickets, pendingMatch.Tickets...)
-			}
-			removeTickets(ctx, usedTickets)
-
-			// convert and pending matches to matches if they are ready to teleport
-			convMatches := handlePendingMatches(ctx, pendingMatches)
-			matches = append(matches, convMatches...)
-
-			assign(ctx, p, matches)
-		}(p)
+// This is blocking so another run can't happen until this one is done.
+func run(ctx context.Context, p profile.ModeProfile) {
+	matches, pendingMatches, err := matchfunction.Run(ctx, p)
+	if err != nil {
+		logger.Error("Failed to fetch matches", zap.String("profileName", p.Name), zap.Error(err))
+		return
 	}
+
+	logger.Debug("Generated matches", zap.Int("generated", len(matches)),
+		zap.Int("generatedPending", len(pendingMatches)),
+		zap.String("profileName", p.Name),
+	)
+
+	usedTickets := make([]*pb.Ticket, 0)
+	for _, match := range matches {
+		usedTickets = append(usedTickets, match.Tickets...)
+	}
+	for _, pendingMatch := range pendingMatches {
+		usedTickets = append(usedTickets, pendingMatch.Tickets...)
+	}
+	removeTickets(ctx, usedTickets)
+
+	// convert and pending matches to matches if they are ready to teleport
+	convMatches := handlePendingMatches(ctx, pendingMatches)
+	matches = append(matches, convMatches...)
+
+	assign(ctx, p, matches)
 }
 
 func removeTickets(ctx context.Context, tickets []*pb.Ticket) {

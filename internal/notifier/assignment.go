@@ -39,6 +39,5 @@ func notifyAssignment(match *pb.Match) {
 }
 
 func RemoveAssignmentListener(ticketId string) {
-	logger.Info("Removing assignment listener", zap.String("ticketId", ticketId))
 	countdownListeners[ticketId] = nil
 }

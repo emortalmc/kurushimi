@@ -17,7 +17,7 @@ func Run(ctx context.Context, profile profile.ModeProfile) ([]*pb.Match, []*pb.P
 		return nil, nil, err
 	}
 
-	logger.Info("Running match function", zap.String("profileName", profile.Name), zap.Int("ticketCount", len(tickets)), zap.Int("pendingMatchCount", len(pendingMatches)))
+	logger.Debug("Running match function", zap.String("profileName", profile.Name), zap.Int("ticketCount", len(tickets)), zap.Int("pendingMatchCount", len(pendingMatches)))
 
 	return profile.MatchFunction(profile, pendingMatches, tickets)
 }
