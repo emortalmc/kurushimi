@@ -6,9 +6,12 @@ COPY go.mod .
 RUN go mod download
 
 COPY . .
-RUN go build -o kurushimi ./internal/director
+RUN go build -o kurushimi ./internal/app/kurushimi
 
 FROM alpine
 
-COPY --from=go /app/kurushimi /app/kurushimi
-CMD ["/app/kurushimi"]
+WORKDIR /app
+
+COPY --from=go /app/kurushimi .
+COPY --from=go /app/internal/config/dynamic/config.yaml .
+CMD ["./kurushimi"]

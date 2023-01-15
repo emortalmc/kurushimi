@@ -15,8 +15,8 @@ const (
 	allPendingMatches  = pendingMatchPrefix + "all"
 )
 
-func CreatePendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) CreatePendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -34,8 +34,8 @@ func CreatePendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
 	return nil
 }
 
-func GetPendingMatch(ctx context.Context, pMatchId string) (*pb.PendingMatch, error) {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) GetPendingMatch(ctx context.Context, pMatchId string) (*pb.PendingMatch, error) {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -62,8 +62,8 @@ func GetPendingMatch(ctx context.Context, pMatchId string) (*pb.PendingMatch, er
 	return pMatch, nil
 }
 
-func GetAllPendingMatches(ctx context.Context, profile profile.ModeProfile) ([]*pb.PendingMatch, error) {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) GetAllPendingMatches(ctx context.Context, profile profile.ModeProfile) ([]*pb.PendingMatch, error) {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -76,7 +76,7 @@ func GetAllPendingMatches(ctx context.Context, profile profile.ModeProfile) ([]*
 
 	pMatches := make([]*pb.PendingMatch, 0)
 	for _, pMatchId := range value {
-		pMatch, err := GetPendingMatch(ctx, pMatchId)
+		pMatch, err := rs.GetPendingMatch(ctx, pMatchId)
 		if err != nil {
 			return nil, err
 		}
@@ -88,8 +88,8 @@ func GetAllPendingMatches(ctx context.Context, profile profile.ModeProfile) ([]*
 	return pMatches, nil
 }
 
-func DeletePendingMatch(ctx context.Context, pMatchId string) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) DeletePendingMatch(ctx context.Context, pMatchId string) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -103,8 +103,8 @@ func DeletePendingMatch(ctx context.Context, pMatchId string) error {
 	return nil
 }
 
-func IndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) IndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -118,8 +118,8 @@ func IndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
 	return nil
 }
 
-func UnIndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) UnIndexPendingMatch(ctx context.Context, pMatch *pb.PendingMatch) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}

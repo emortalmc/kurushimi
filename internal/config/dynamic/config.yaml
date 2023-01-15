@@ -1,0 +1,10 @@
+namespace: ""
+
+redis:
+  host: localhost
+  port: 6379
+
+rabbitmq:
+  host: localhost
+  username: dev
+  password: password

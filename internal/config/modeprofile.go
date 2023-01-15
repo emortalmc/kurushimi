@@ -53,10 +53,10 @@ var ModeProfiles = map[string]profile.ModeProfile{
 			return functions.MakeCountdownMatches(profile, pendingMatches, tickets)
 		},
 	},
-	"parkour_tag": {
-		Name:            "parkour_tag",
-		GameName:        "game.parkour_tag",
-		FleetName:       "parkour-tag",
+	"parkourtag": {
+		Name:            "parkourtag",
+		GameName:        "game.parkourtag",
+		FleetName:       "parkourtag",
 		MatchmakingRate: 2 * time.Second,
 		MinPlayers:      2,
 		MaxPlayers:      12,

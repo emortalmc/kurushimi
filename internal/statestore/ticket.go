@@ -14,8 +14,8 @@ const (
 	allTickets   = ticketPrefix + "all"
 )
 
-func CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -34,8 +34,8 @@ func CreateTicket(ctx context.Context, ticket *pb.Ticket) error {
 	return nil
 }
 
-func GetTicket(ctx context.Context, ticketId string) (*pb.Ticket, error) {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) GetTicket(ctx context.Context, ticketId string) (*pb.Ticket, error) {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -62,8 +62,8 @@ func GetTicket(ctx context.Context, ticketId string) (*pb.Ticket, error) {
 	return ticket, nil
 }
 
-func GetAllTickets(ctx context.Context, game string) ([]*pb.Ticket, error) {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) GetAllTickets(ctx context.Context, game string) ([]*pb.Ticket, error) {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -76,7 +76,7 @@ func GetAllTickets(ctx context.Context, game string) ([]*pb.Ticket, error) {
 
 	tickets := make([]*pb.Ticket, 0, len(ticketIds))
 	for _, ticketId := range ticketIds {
-		ticket, err := GetTicket(ctx, ticketId)
+		ticket, err := rs.GetTicket(ctx, ticketId)
 		if err != nil {
 			return nil, err
 		}
@@ -92,8 +92,8 @@ func GetAllTickets(ctx context.Context, game string) ([]*pb.Ticket, error) {
 	return tickets, nil
 }
 
-func DeleteTicket(ctx context.Context, ticketId string) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) DeleteTicket(ctx context.Context, ticketId string) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -106,8 +106,8 @@ func DeleteTicket(ctx context.Context, ticketId string) error {
 	return nil
 }
 
-func IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}
@@ -120,8 +120,8 @@ func IndexTicket(ctx context.Context, ticket *pb.Ticket) error {
 	return nil
 }
 
-func UnIndexTicket(ctx context.Context, ticketId string) error {
-	redisConn, err := redisPool.GetContext(ctx)
+func (rs *redisStore) UnIndexTicket(ctx context.Context, ticketId string) error {
+	redisConn, err := rs.redisPool.GetContext(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to connect to redis: %v", err)
 	}

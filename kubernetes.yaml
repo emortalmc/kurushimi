@@ -13,15 +13,18 @@ spec:
       imagePullPolicy: Never
       ports:
         - name: grpc
-          containerPort: 9090
+          containerPort: 8080
+          hostPort: 8080
 
       env:
         - name: TRACKER_ENABLED
           value: "true"
-        - name: REDIS_HOST
-          value: "host.minikube.internal"
-        - name: NAMESPACE
+        - name: KURUSHIMI_REDIS_HOST # Well this is horrible but Viper says we have to use a `.` to separate nested keys
+          value: "redis-master"
+        - name: KURUSHIMI_NAMESPACE
           value: "emortalmc"
+        - name: KURUSHIMI_RABBITMQ_HOST
+          value: "host.minikube.internal"
 
   serviceAccountName: matchmaker
   automountServiceAccountToken: true

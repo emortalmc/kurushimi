@@ -6,17 +6,26 @@ import (
 	"kurushimi/pkg/pb"
 )
 
-// map [ticketId][]pb.Frontend_WatchTicketCountdownServer
-var countdownListeners = make(map[string][]pb.Frontend_WatchTicketCountdownServer)
+// map [ticketId][]CountdownStreamContainer
+var countdownStreams = make(map[string][]CountdownStreamContainer)
 
-func AddCountdownListener(ticketId string, listener pb.Frontend_WatchTicketCountdownServer) {
-	countdownListeners[ticketId] = append(countdownListeners[ticketId], listener)
+type CountdownStreamContainer struct {
+	Stream         pb.Frontend_WatchTicketCountdownServer
+	FinishNotifier chan struct{}
+}
+
+func AddCountdownListener(ticketId string, stream pb.Frontend_WatchTicketCountdownServer, finishNotifier chan struct{}) {
+	countdownStreams[ticketId] = append(countdownStreams[ticketId], CountdownStreamContainer{
+		Stream:         stream,
+		FinishNotifier: finishNotifier,
+	})
 }
 
 func NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) {
+	logger := zap.S()
 	for _, ticket := range tickets {
-		for _, listener := range countdownListeners[ticket.Id] {
-			err := listener.Send(&pb.WatchCountdownResponse{
+		for _, container := range countdownStreams[ticket.Id] {
+			err := container.Stream.Send(&pb.WatchCountdownResponse{
 				TeleportTime: teleportTime,
 			})
 
@@ -28,10 +37,11 @@ func NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) 
 }
 
 func NotifyCountdownCancellation(tickets []*pb.Ticket) {
+	logger := zap.S()
 	for _, ticket := range tickets {
-		for _, listener := range countdownListeners[ticket.Id] {
+		for _, container := range countdownStreams[ticket.Id] {
 			cancelled := true
-			err := listener.Send(&pb.WatchCountdownResponse{
+			err := container.Stream.Send(&pb.WatchCountdownResponse{
 				Cancelled: &cancelled,
 			})
 
@@ -43,5 +53,8 @@ func NotifyCountdownCancellation(tickets []*pb.Ticket) {
 }
 
 func RemoveCountdownListener(ticketId string) {
-	countdownListeners[ticketId] = nil
+	for _, container := range countdownStreams[ticketId] {
+		container.FinishNotifier <- struct{}{}
+	}
+	countdownStreams[ticketId] = nil
 }

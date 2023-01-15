@@ -48,13 +48,14 @@ public class KurushimiStubCollection {
     private static Optional<ManagedChannel> createChannel() {
         String name = "matchmaker";
 
+        String envPort = System.getenv("MATCHMAKER_SERVICE_PORT"); // only used for dev
+
         if (!DEVELOPMENT) {
-            return Optional.of(ManagedChannelBuilder.forAddress(name, 9090)
+            return Optional.of(ManagedChannelBuilder.forAddress(name, Integer.parseInt(envPort))
                     .defaultLoadBalancingPolicy("round_robin")
                     .usePlaintext()
                     .build());
         }
-        String envPort = System.getenv(name + "-port"); // only used for dev
 
         if (envPort == null) {
             LOGGER.warn("Service {} is not enabled, skipping", name);

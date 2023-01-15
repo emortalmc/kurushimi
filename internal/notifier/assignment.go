@@ -6,38 +6,46 @@ import (
 	"log"
 )
 
-// map [ticketId][]pb.Frontend_WatchTicketAssignmentServer
-var assignment = make(map[string][]pb.Frontend_WatchTicketAssignmentServer)
-var logger = zap.S()
+// map [ticketId][]StreamContainer
+var assignmentStreams = make(map[string][]AssignmentStreamContainer)
 
-func AddAssignmentListener(ticketId string, listener pb.Frontend_WatchTicketAssignmentServer) {
-	assignment[ticketId] = append(assignment[ticketId], listener)
+type AssignmentStreamContainer struct {
+	Stream         pb.Frontend_WatchTicketAssignmentServer
+	FinishNotifier chan struct{}
+}
+
+func AddAssignmentListener(ticketId string, stream pb.Frontend_WatchTicketAssignmentServer, finishNotifier chan struct{}) {
+	assignmentStreams[ticketId] = append(assignmentStreams[ticketId], AssignmentStreamContainer{
+		Stream:         stream,
+		FinishNotifier: finishNotifier,
+	})
 }
 
 func notifyAssignment(match *pb.Match) {
+	logger := zap.S()
 	if match.Assignment == nil {
-		logger.Error("Assignment is nil", zap.Any("match", match))
+		logger.Errorw("Assignment is nil", "match", match)
 		return
 	}
-	log.Printf("Notifying assignment for match %s (%s)", match.Id, assignment)
 	for _, ticket := range match.Tickets {
-		for _, listener := range assignment[ticket.Id] {
-			log.Printf("Notifying assignment for ticket %s", ticket.Id)
-			err := listener.Send(&pb.WatchAssignmentResponse{
+		for _, container := range assignmentStreams[ticket.Id] {
+			err := container.Stream.Send(&pb.WatchAssignmentResponse{
 				Assignment: match.Assignment,
 			})
 
 			if err != nil {
-				logger.Error("Failed to send notification", zap.Error(err))
+				logger.Errorw("Failed to send notification", err)
 			}
 
-			// An assignment is only sent once, so we can remove the listener/stream
+			log.Printf("Marking context as done")
+			// An assignment is only sent once, so we can remove the container/container
 			// even if there is an error.
-			listener.Context().Done()
+			container.FinishNotifier <- struct{}{}
 		}
 	}
 }
 
-func RemoveAssignmentListener(ticketId string) {
-	countdownListeners[ticketId] = nil
+func RemoveAssignmentStream(ticketId string) {
+	log.Printf("Removing assignment stream")
+	assignmentStreams[ticketId] = nil
 }

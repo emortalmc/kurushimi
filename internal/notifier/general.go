@@ -2,16 +2,31 @@ package notifier
 
 import (
 	"context"
+	"github.com/emortalmc/grpc-api-specs/gen/go/service/player_tracker"
+	kubernetes2 "k8s.io/client-go/kubernetes"
+	"kurushimi/internal/messaging"
 	"kurushimi/pkg/pb"
 	"log"
 )
 
-func NotifyMatchTeleport(ctx context.Context, match *pb.Match) error {
+type Notifier struct {
+	kubeClient          kubernetes2.Interface
+	messenger           *messaging.Messenger
+	playerTrackerClient player_tracker.PlayerTrackerClient
+}
+
+func (n *Notifier) NotifyMatchTeleport(ctx context.Context, match *pb.Match) error {
 	log.Printf("Match %s is ready to teleport", match.Id)
-	err := notifyTransport(ctx, match)
+	err := n.notifyTransport(ctx, match)
 	if err != nil {
 		return err
 	}
 	notifyAssignment(match)
+	log.Printf("Finished notifying assignment")
+
+	// remove from countdowns
+	for _, ticket := range match.Tickets {
+		RemoveCountdownListener(ticket.Id)
+	}
 	return nil
 }

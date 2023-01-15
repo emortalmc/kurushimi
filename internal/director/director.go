@@ -1,4 +1,4 @@
-package main
+package director
 
 import (
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
@@ -6,50 +6,34 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kurushimi/internal/config"
+	"kurushimi/internal/config/dynamic"
 	"kurushimi/internal/config/profile"
-	"kurushimi/internal/frontend"
 	"kurushimi/internal/matchfunction"
+	"kurushimi/internal/messaging"
 	"kurushimi/internal/notifier"
 	"kurushimi/internal/statestore"
 	"kurushimi/internal/utils/kubernetes"
 	"kurushimi/pkg/pb"
 	"math/rand"
-	"os"
-	"os/signal"
 	"time"
 )
 
-const (
-	minTimeBetweenRuns = 4 * time.Second
-)
+type KurushimiApplication struct {
+	StateStore statestore.StateStore
+	Config     dynamic.Config
+	Messaging  messaging.Messenger
+	Logger     *zap.SugaredLogger
+}
 
-var (
-	logger, _ = zap.NewProduction()
-	namespace = os.Getenv("NAMESPACE")
-)
-
-func main() {
-	kubernetes.Init()
-
+func Init(ctx context.Context, n *notifier.Notifier, app KurushimiApplication) {
 	modeProfiles := config.ModeProfiles
-
-	logger.Info("Starting Kurushimi",
-		zap.Int("profileCount", len(modeProfiles)),
-		zap.Any("profiles", modeProfiles),
-	)
-
-	ctx := context.Background()
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
-	defer cancel()
-
-	go frontend.Run(ctx)
 
 	for _, p := range modeProfiles {
 		go func(p profile.ModeProfile) {
 			// Only run every x milliseconds, but if that has already passed, run immediately.
 			for {
 				lastRunTime := time.Now()
-				run(ctx, p)
+				app.run(ctx, n, p)
 				timeSinceLastRun := time.Since(lastRunTime)
 				if timeSinceLastRun < p.MatchmakingRate {
 					select {
@@ -62,23 +46,20 @@ func main() {
 			}
 		}(p)
 	}
-	select {
-	case <-ctx.Done():
-		return
-	}
 }
 
 // This is blocking so another run can't happen until this one is done.
-func run(ctx context.Context, p profile.ModeProfile) {
-	matches, pendingMatches, err := matchfunction.Run(ctx, p)
+func (app *KurushimiApplication) run(ctx context.Context, n *notifier.Notifier, p profile.ModeProfile) {
+	matches, pendingMatches, err := matchfunction.Run(ctx, app.StateStore, p)
 	if err != nil {
-		logger.Error("Failed to fetch matches", zap.String("profileName", p.Name), zap.Error(err))
+		app.Logger.Errorw("Failed to fetch matches", "profileName", p.Name, err)
 		return
 	}
 
-	logger.Debug("Generated matches", zap.Int("generated", len(matches)),
-		zap.Int("generatedPending", len(pendingMatches)),
-		zap.String("profileName", p.Name),
+	app.Logger.Debugw("Generated matches",
+		"generated", len(matches),
+		"generatedPending", len(pendingMatches),
+		"profileName", p.Name,
 	)
 
 	usedTickets := make([]*pb.Ticket, 0)
@@ -88,44 +69,44 @@ func run(ctx context.Context, p profile.ModeProfile) {
 	for _, pendingMatch := range pendingMatches {
 		usedTickets = append(usedTickets, pendingMatch.Tickets...)
 	}
-	removeTickets(ctx, usedTickets)
+	app.removeTickets(ctx, usedTickets)
 
 	// convert and pending matches to matches if they are ready to teleport
-	convMatches := handlePendingMatches(ctx, pendingMatches)
+	convMatches := app.handlePendingMatches(ctx, pendingMatches)
 	matches = append(matches, convMatches...)
 
-	assign(ctx, p, matches)
+	app.assign(ctx, n, p, matches)
 }
 
-func removeTickets(ctx context.Context, tickets []*pb.Ticket) {
+func (app *KurushimiApplication) removeTickets(ctx context.Context, tickets []*pb.Ticket) {
 	for _, ticket := range tickets {
-		err := statestore.DeleteTicket(ctx, ticket.Id)
+		err := app.StateStore.DeleteTicket(ctx, ticket.Id)
 		if err != nil {
-			logger.Error("Failed to delete ticket", zap.Error(err))
+			app.Logger.Error("Failed to delete ticket", zap.Error(err))
 			continue
 		}
-		err = statestore.UnIndexTicket(ctx, ticket.Id)
+		err = app.StateStore.UnIndexTicket(ctx, ticket.Id)
 		if err != nil {
-			logger.Error("Failed to unindex ticket", zap.Error(err))
+			app.Logger.Error("Failed to unindex ticket", zap.Error(err))
 			continue
 		}
 	}
 }
 
-func handlePendingMatches(ctx context.Context, pendingMatches []*pb.PendingMatch) []*pb.Match {
+func (app *KurushimiApplication) handlePendingMatches(ctx context.Context, pendingMatches []*pb.PendingMatch) []*pb.Match {
 	matches := make([]*pb.Match, 0)
 
 	for _, pendingMatch := range pendingMatches {
 		if pendingMatch.TeleportTime.AsTime().Before(time.Now()) {
 			// ready to teleport
-			err := statestore.DeletePendingMatch(ctx, pendingMatch.Id)
+			err := app.StateStore.DeletePendingMatch(ctx, pendingMatch.Id)
 			if err != nil {
-				logger.Error("Failed to delete pending match", zap.Error(err))
+				app.Logger.Error("Failed to delete pending match", zap.Error(err))
 				continue
 			}
-			err = statestore.UnIndexPendingMatch(ctx, pendingMatch)
+			err = app.StateStore.UnIndexPendingMatch(ctx, pendingMatch)
 			if err != nil {
-				logger.Error("Failed to unindex pending match", zap.Error(err))
+				app.Logger.Error("Failed to unindex pending match", zap.Error(err))
 				continue
 			}
 
@@ -137,14 +118,14 @@ func handlePendingMatches(ctx context.Context, pendingMatches []*pb.PendingMatch
 		} else {
 			// not ready to teleport yet
 
-			err := statestore.CreatePendingMatch(ctx, pendingMatch)
+			err := app.StateStore.CreatePendingMatch(ctx, pendingMatch)
 			if err != nil {
-				logger.Error("Failed to save pending match", zap.Error(err))
+				app.Logger.Error("Failed to save pending match", zap.Error(err))
 				continue
 			}
-			err = statestore.IndexPendingMatch(ctx, pendingMatch)
+			err = app.StateStore.IndexPendingMatch(ctx, pendingMatch)
 			if err != nil {
-				logger.Error("Failed to index pending match", zap.Error(err))
+				app.Logger.Error("Failed to index pending match", zap.Error(err))
 				continue
 			}
 		}
@@ -152,24 +133,25 @@ func handlePendingMatches(ctx context.Context, pendingMatches []*pb.PendingMatch
 	return matches
 }
 
-func assign(ctx context.Context, p profile.ModeProfile, matches []*pb.Match) {
+func (app *KurushimiApplication) assign(ctx context.Context, n *notifier.Notifier, p profile.ModeProfile, matches []*pb.Match) {
+	logger := zap.S().With("profileName", p.Name)
 	for _, match := range matches {
-		if namespace == "" {
+		if app.Config.Namespace == "" {
 			match.Assignment = &pb.Assignment{
 				ServerId:      "mock-gameserver-xxxx",
 				ServerAddress: "0.0.0.0",
 				ServerPort:    rand.Uint32(),
 			}
 		} else {
-			alloc, err := kubernetes.AgonesClient.AllocationV1().GameServerAllocations(namespace).Create(ctx, p.Selector(p, match), v1.CreateOptions{})
+			alloc, err := kubernetes.AgonesClient.AllocationV1().GameServerAllocations(app.Config.Namespace).Create(ctx, p.Selector(p, match), v1.CreateOptions{})
 			if err != nil {
-				logger.Error("Failed to allocate gameserver", zap.Error(err))
+				logger.Errorw("Failed to allocate gameserver", err)
 				continue
 			}
 
 			status := alloc.Status
 			if status.State != allocatorv1.GameServerAllocationAllocated {
-				logger.Error("Failed to allocate server", zap.String("matchId", match.Id), zap.Any("status", status))
+				logger.Errorw("Failed to allocate server", "matchId", match.Id, "status", status)
 				continue
 			}
 			match.Assignment = &pb.Assignment{
@@ -178,10 +160,10 @@ func assign(ctx context.Context, p profile.ModeProfile, matches []*pb.Match) {
 				ServerPort:    uint32(status.Ports[0].Port),
 			}
 		}
-		logger.Info("Assigned server to match", zap.String("matchId", match.Id), zap.Any("assignment", match.Assignment))
-		err := notifier.NotifyMatchTeleport(ctx, match)
+		logger.Infow("Assigned server to match", "matchId", match.Id, "assignment", match.Assignment)
+		err := n.NotifyMatchTeleport(ctx, match)
 		if err != nil {
-			logger.Error("Failed to notify transport", zap.Error(err))
+			logger.Error("Failed to notify transport", err)
 			continue
 		}
 	}

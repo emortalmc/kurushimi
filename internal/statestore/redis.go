@@ -3,25 +3,31 @@ package statestore
 import (
 	"context"
 	"fmt"
-	rs "github.com/go-redsync/redsync/v4"
 	"github.com/gomodule/redigo/redis"
 	"go.uber.org/zap"
-	"os"
+	"kurushimi/internal/config/dynamic"
 	"time"
 )
 
 var (
-	logger = zap.S()
-
-	redsync *rs.Redsync
-
-	healthCheckPool = getHealthCheckPool()
-	redisPool       = getRedisPool()
-	mutex           *rs.Mutex
+// redsync *rs.Redsync
+// mutex *rs.Mutex
 )
 
-func HealthCheck() error {
-	redisConn, err := healthCheckPool.GetContext(context.Background())
+type redisStore struct {
+	healthCheckPool *redis.Pool
+	redisPool       *redis.Pool
+}
+
+func NewRedis(cfg dynamic.Config) StateStore {
+	return &redisStore{
+		healthCheckPool: getHealthCheckPool(cfg.Redis),
+		redisPool:       getRedisPool(cfg.Redis),
+	}
+}
+
+func (rs *redisStore) HealthCheck(ctx context.Context) error {
+	redisConn, err := rs.healthCheckPool.GetContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -34,7 +40,7 @@ func HealthCheck() error {
 	return nil
 }
 
-func getHealthCheckPool() *redis.Pool {
+func getHealthCheckPool(cfg dynamic.RedisConfig) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:      3,
 		MaxActive:    0,
@@ -45,12 +51,12 @@ func getHealthCheckPool() *redis.Pool {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialContext(ctx, "tcp", getRedisAddress())
+			return redis.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
 		},
 	}
 }
 
-func getRedisPool() *redis.Pool {
+func getRedisPool(cfg dynamic.RedisConfig) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:      3,
 		MaxActive:    0,
@@ -61,7 +67,7 @@ func getRedisPool() *redis.Pool {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			return redis.DialContext(ctx, "tcp", getRedisAddress())
+			return redis.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
 		},
 	}
 }
@@ -79,15 +85,15 @@ func testOnBorrow(c redis.Conn, lastUsed time.Time) error {
 func handleConClose(conn redis.Conn) {
 	err := conn.Close()
 	if err != nil {
-		logger.Error("failed to close redis client connection.", zap.Error(err))
+		zap.S().Errorw("failed to close redis client connection.", err)
 	}
 }
 
-func getRedisAddress() string {
-	host := "localhost"
-	if eHost := os.Getenv("REDIS_HOST"); eHost != "" {
-		host = eHost
-	}
-
-	return fmt.Sprintf("%s:6379", host)
-}
+//func getRedisAddress() string {
+//	host := "localhost"
+//	if eHost := os.Getenv("REDIS_HOST"); eHost != "" {
+//		host = eHost
+//	}
+//
+//	return fmt.Sprintf("%s:6379", host)
+//}
