@@ -13,13 +13,13 @@ spec:
       imagePullPolicy: Never
       ports:
         - name: grpc
-          containerPort: 8080
-          hostPort: 8080
+          containerPort: 9090
+          hostPort: 9090
 
       env:
         - name: TRACKER_ENABLED
           value: "true"
-        - name: KURUSHIMI_REDIS_HOST # Well this is horrible but Viper says we have to use a `.` to separate nested keys
+        - name: KURUSHIMI_REDIS_HOST
           value: "redis-master"
         - name: KURUSHIMI_NAMESPACE
           value: "emortalmc"

@@ -3,6 +3,7 @@ package messaging
 import (
 	"fmt"
 	"github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"kurushimi/internal/config/dynamic"
 )
 
@@ -23,6 +24,9 @@ func NewRabbitMQ(config dynamic.Config) (*Messenger, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	zap.S().Infow("Connected to RabbitMQ", "connection", conn.LocalAddr().String())
+
 	return &Messenger{
 		Connection: conn,
 		Channel:    chann,

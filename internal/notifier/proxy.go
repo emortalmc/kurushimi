@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/emortalmc/grpc-api-specs/gen/go/messaging/general"
 	"github.com/emortalmc/grpc-api-specs/gen/go/service/server_discovery"
+	"github.com/golang/protobuf/proto"
 	"github.com/rabbitmq/amqp091-go"
 	"kurushimi/internal/messaging"
 	"kurushimi/internal/utils/kubernetes"
@@ -30,6 +31,11 @@ func (n *Notifier) notifyTransport(ctx context.Context, match *pb.Match) error {
 		playerIds = append(playerIds, ticket.GetPlayerId())
 	}
 
+	// Check if len = 0 because NotifyProxy may have been set to false for all tickets
+	if len(playerIds) == 0 {
+		return nil
+	}
+
 	assignment := match.Assignment
 	msg := general.ProxyServerSwitchMessage{
 		Server: &server_discovery.ConnectableServer{
@@ -39,10 +45,16 @@ func (n *Notifier) notifyTransport(ctx context.Context, match *pb.Match) error {
 		},
 		PlayerIds: playerIds,
 	}
+	msgBytes, err := proto.Marshal(&msg)
+	if err != nil {
+		return err
+	}
 
-	err := n.messenger.Channel.PublishWithContext(ctx, "mc:velocity:all", "", false, true, amqp091.Publishing{
+	log.Printf("Publishing message: " + msg.String())
+	err = n.messenger.Channel.PublishWithContext(ctx, "mc:proxy:all", "", false, false, amqp091.Publishing{
 		Timestamp: time.Now(),
 		Type:      string(msg.ProtoReflect().Descriptor().FullName()),
+		Body:      msgBytes,
 	})
 
 	if err != nil {

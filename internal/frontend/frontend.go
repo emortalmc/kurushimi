@@ -28,7 +28,7 @@ type frontendService struct {
 func Init(ctx context.Context, app director.KurushimiApplication) {
 	logger = zap.S()
 
-	lis, err := net.Listen("tcp", ":8080")
+	lis, err := net.Listen("tcp", ":9090")
 	if err != nil {
 		logger.Fatal("Failed to listen", zap.Error(err))
 	}
