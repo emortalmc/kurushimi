@@ -56,24 +56,17 @@ func (app *KurushimiApplication) run(ctx context.Context, n *notifier.Notifier, 
 		return
 	}
 
-	app.Logger.Debugw("Generated matches",
-		"generated", len(matches),
-		"generatedPending", len(pendingMatches),
-		"profileName", p.Name,
-	)
-
-	usedTickets := make([]*pb.Ticket, 0)
-	for _, match := range matches {
-		usedTickets = append(usedTickets, match.Tickets...)
-	}
-	for _, pendingMatch := range pendingMatches {
-		usedTickets = append(usedTickets, pendingMatch.Tickets...)
-	}
-	app.removeTickets(ctx, usedTickets)
-
 	// convert and pending matches to matches if they are ready to teleport
 	convMatches := app.handlePendingMatches(ctx, pendingMatches)
 	matches = append(matches, convMatches...)
+
+	// NOTE: We don't add pendingMatch tickets here as they are depended upon
+	// to detect if someone leaves the queue before teleporting.
+	finishedTickets := make([]*pb.Ticket, 0)
+	for _, match := range matches {
+		finishedTickets = append(finishedTickets, match.Tickets...)
+	}
+	app.removeTickets(ctx, finishedTickets)
 
 	app.assign(ctx, n, p, matches)
 }

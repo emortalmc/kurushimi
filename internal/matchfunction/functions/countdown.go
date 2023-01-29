@@ -7,7 +7,6 @@ import (
 	"kurushimi/internal/notifier"
 	"kurushimi/internal/utils/math"
 	"kurushimi/pkg/pb"
-	"log"
 	"time"
 )
 
@@ -15,15 +14,22 @@ import (
 // 1. Fill existing PendingMatches with new tickets from the pool
 // Communicate to players in the PendingMatch the time until the match is made and the tickets in the match
 // 2. Create new PendingMatches from the remaining tickets in the pool
+// NOTE: tickets is all active tickets, even if they are already in a PendingMatch
 func MakeCountdownMatches(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
 	if len(tickets) == 0 {
 		return nil, pendingMatches, nil
 	}
 	pendingMatches = handleLeavers(profile, pendingMatches, tickets)
+
+	// filter out tickets already in a pending match
+	tickets = filterTickets(tickets, pendingMatches)
+
 	tickets, pendingMatches = fillPendingMatches(profile, tickets, pendingMatches)
+
 	if len(tickets) == 0 {
 		return nil, pendingMatches, nil
 	}
+
 	tickets, madePendingMatches := makePendingMatches(profile, tickets)
 
 	pendingMatches = append(pendingMatches, madePendingMatches...)
@@ -65,6 +71,25 @@ func handleLeavers(profile profile.ModeProfile, pendingMatches []*pb.PendingMatc
 	return pendingMatches
 }
 
+func filterTickets(tickets []*pb.Ticket, pendingMatches []*pb.PendingMatch) []*pb.Ticket {
+	filteredTickets := make([]*pb.Ticket, 0)
+	for _, ticket := range tickets {
+		found := false
+		for _, pendingMatch := range pendingMatches {
+			for _, matchTicket := range pendingMatch.Tickets {
+				if ticket.Id == matchTicket.Id {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			filteredTickets = append(filteredTickets, ticket)
+		}
+	}
+	return filteredTickets
+}
+
 func fillPendingMatches(profile profile.ModeProfile, tickets []*pb.Ticket, pendingMatches []*pb.PendingMatch) ([]*pb.Ticket, []*pb.PendingMatch) {
 	for _, pendingMatch := range pendingMatches {
 		if len(pendingMatch.Tickets) >= profile.MaxPlayers {
@@ -94,39 +119,20 @@ func makePendingMatches(profile profile.ModeProfile, tickets []*pb.Ticket) ([]*p
 	pendingMatches := make([]*pb.PendingMatch, 0)
 
 	for len(tickets) >= profile.MinPlayers {
+		maxIndex := math.Min(len(tickets), profile.MaxPlayers)
 		pendingMatch := &pb.PendingMatch{
 			Id:           uuid.New().String(),
 			ProfileName:  profile.Name,
-			Tickets:      tickets[:math.Min(len(tickets), profile.MaxPlayers)],
+			Tickets:      tickets[:maxIndex],
 			TeleportTime: timestamppb.New(time.Now().Add(10 * time.Second)),
 		}
 		pendingMatches = append(pendingMatches, pendingMatch)
-		tickets = tickets[math.Min(len(tickets), profile.MaxPlayers):]
+		tickets = tickets[maxIndex:]
 
 		notifier.NotifyCountdown(pendingMatch.Tickets, pendingMatch.TeleportTime)
 	}
 
 	return tickets, pendingMatches
-}
-
-// makeFullMatches creates full matches from tickets in the pool.
-// returns: creates matches, remaining tickets that are unused.
-func makeFullMatches(profile profile.ModeProfile, tickets []*pb.Ticket) ([]*pb.Match, []*pb.Ticket) {
-	var matches []*pb.Match
-	for len(tickets) >= profile.MaxPlayers {
-		var matchTickets []*pb.Ticket
-		for i := 0; i < profile.MaxPlayers; i++ {
-			ticket := tickets[0]
-			// Remove the Tickets from this pool and add to the match proposal.
-			matchTickets = append(matchTickets, ticket)
-			tickets = tickets[1:]
-		}
-
-		matches = append(matches, newMatch(uuid.New(), profile, matchTickets))
-	}
-
-	log.Printf("makeFullMatches finished: tickets: %d", len(tickets))
-	return matches, tickets
 }
 
 func newMatch(id uuid.UUID, profile profile.ModeProfile, tickets []*pb.Ticket) *pb.Match {

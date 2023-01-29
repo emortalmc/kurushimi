@@ -27,7 +27,6 @@ func (n *Notifier) notifyTransport(ctx context.Context, match *pb.Match) error {
 		if ticket.NotifyProxy != nil && ticket.GetNotifyProxy() == false {
 			continue
 		}
-		log.Printf("D %s", ticket.GetPlayerId())
 		playerIds = append(playerIds, ticket.GetPlayerId())
 	}
 

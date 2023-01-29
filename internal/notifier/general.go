@@ -22,7 +22,6 @@ func (n *Notifier) NotifyMatchTeleport(ctx context.Context, match *pb.Match) err
 		return err
 	}
 	notifyAssignment(match)
-	log.Printf("Finished notifying assignment")
 
 	// remove from countdowns
 	for _, ticket := range match.Tickets {
