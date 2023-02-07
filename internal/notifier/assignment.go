@@ -3,7 +3,6 @@ package notifier
 import (
 	"go.uber.org/zap"
 	"kurushimi/pkg/pb"
-	"log"
 )
 
 // map [ticketId][]StreamContainer
@@ -14,17 +13,21 @@ type AssignmentStreamContainer struct {
 	FinishNotifier chan struct{}
 }
 
-func AddAssignmentListener(ticketId string, stream pb.Frontend_WatchTicketAssignmentServer, finishNotifier chan struct{}) {
+type assignmentNotifierImpl struct {
+	AssignmentNotifier
+	logger *zap.SugaredLogger
+}
+
+func (n *assignmentNotifierImpl) AddAssignmentListener(ticketId string, stream pb.Frontend_WatchTicketAssignmentServer, finishNotifier chan struct{}) {
 	assignmentStreams[ticketId] = append(assignmentStreams[ticketId], AssignmentStreamContainer{
 		Stream:         stream,
 		FinishNotifier: finishNotifier,
 	})
 }
 
-func notifyAssignment(match *pb.Match) {
-	logger := zap.S()
+func (n *assignmentNotifierImpl) notifyAssignment(match *pb.Match) {
 	if match.Assignment == nil {
-		logger.Errorw("Assignment is nil", "match", match)
+		n.logger.Errorw("Assignment is nil", "match", match)
 		return
 	}
 	for _, ticket := range match.Tickets {
@@ -34,10 +37,9 @@ func notifyAssignment(match *pb.Match) {
 			})
 
 			if err != nil {
-				logger.Errorw("Failed to send notification", err)
+				n.logger.Errorw("Failed to send notification", err)
 			}
 
-			log.Printf("Marking context as done")
 			// An assignment is only sent once, so we can remove the container/container
 			// even if there is an error.
 			container.FinishNotifier <- struct{}{}
@@ -45,7 +47,7 @@ func notifyAssignment(match *pb.Match) {
 	}
 }
 
-func RemoveAssignmentStream(ticketId string) {
-	log.Printf("Removing assignment stream")
+func (n *assignmentNotifierImpl) RemoveAssignmentStream(ticketId string) {
+	n.logger.Info("Removing assignment stream")
 	assignmentStreams[ticketId] = nil
 }

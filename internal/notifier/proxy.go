@@ -2,25 +2,19 @@ package notifier
 
 import (
 	"context"
-	"github.com/emortalmc/grpc-api-specs/gen/go/messaging/general"
-	"github.com/emortalmc/grpc-api-specs/gen/go/service/server_discovery"
-	"github.com/golang/protobuf/proto"
-	"github.com/rabbitmq/amqp091-go"
-	"kurushimi/internal/messaging"
-	"kurushimi/internal/utils/kubernetes"
+	"go.uber.org/zap"
+	"kurushimi/internal/rabbitmq/messenger"
 	"kurushimi/pkg/pb"
-	"log"
-	"time"
 )
 
-func New(messenger *messaging.Messenger) *Notifier {
-	return &Notifier{
-		kubeClient: kubernetes.KubeClient,
-		messenger:  messenger,
-	}
+type proxyNotifierImpl struct {
+	ProxyNotifier
+
+	messenger messenger.Messenger
+	logger    *zap.SugaredLogger
 }
 
-func (n *Notifier) notifyTransport(ctx context.Context, match *pb.Match) error {
+func (n *proxyNotifierImpl) notifyTransport(ctx context.Context, match *pb.Match) error {
 	// Get the player IDs ignoring tickets marked to not notify the proxy
 	var playerIds []string
 	for _, ticket := range match.Tickets {
@@ -35,29 +29,10 @@ func (n *Notifier) notifyTransport(ctx context.Context, match *pb.Match) error {
 		return nil
 	}
 
-	assignment := match.Assignment
-	msg := general.ProxyServerSwitchMessage{
-		Server: &server_discovery.ConnectableServer{
-			Id:      assignment.ServerId,
-			Address: assignment.ServerAddress,
-			Port:    assignment.ServerPort,
-		},
-		PlayerIds: playerIds,
-	}
-	msgBytes, err := proto.Marshal(&msg)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Publishing message: " + msg.String())
-	err = n.messenger.Channel.PublishWithContext(ctx, "mc:proxy:all", "", false, false, amqp091.Publishing{
-		Timestamp: time.Now(),
-		Type:      string(msg.ProtoReflect().Descriptor().FullName()),
-		Body:      msgBytes,
-	})
+	err := n.messenger.SwitchPlayerServer(ctx, match.Assignment, playerIds)
 
 	if err != nil {
-		log.Printf("Failed to publish message: %v", err)
+		n.logger.Errorw("failed to publish message", err)
 	}
 
 	return nil

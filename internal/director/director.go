@@ -6,11 +6,10 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kurushimi/internal/config"
-	"kurushimi/internal/config/dynamic"
 	"kurushimi/internal/config/profile"
 	"kurushimi/internal/matchfunction"
-	"kurushimi/internal/messaging"
 	"kurushimi/internal/notifier"
+	"kurushimi/internal/rabbitmq"
 	"kurushimi/internal/statestore"
 	"kurushimi/internal/utils/kubernetes"
 	"kurushimi/pkg/pb"
@@ -20,8 +19,8 @@ import (
 
 type KurushimiApplication struct {
 	StateStore statestore.StateStore
-	Config     dynamic.Config
-	Messaging  messaging.Messenger
+	Config     *config.Config
+	Messaging  rabbitmq.Messenger
 	Logger     *zap.SugaredLogger
 }
 

@@ -1,8 +1,7 @@
-package dynamic
+package config
 
 import (
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"strings"
 )
 
@@ -10,6 +9,8 @@ type Config struct {
 	Redis     RedisConfig    `yaml:"redis"`
 	RabbitMq  RabbitMQConfig `yaml:"rabbitmq"`
 	Namespace string         `yaml:"namespace"`
+
+	Development bool `yaml:"development"`
 }
 
 type RedisConfig struct {
@@ -23,7 +24,7 @@ type RabbitMQConfig struct {
 	Password string `yaml:"password"`
 }
 
-func ParseConfig() (config Config, err error) {
+func LoadGlobalConfig() (config *Config, err error) {
 	viper.SetEnvPrefix("kurushimi")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
@@ -31,16 +32,13 @@ func ParseConfig() (config Config, err error) {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 
-	err = viper.ReadInConfig()
-	if err != nil {
-		return Config{}, err
+	if err = viper.ReadInConfig(); err != nil {
+		return nil, err
 	}
 
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return Config{}, err
+	if err = viper.Unmarshal(&config); err != nil {
+		return nil, err
 	}
 
-	zap.S().Infow("Parsed config", "config", config)
 	return
 }

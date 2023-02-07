@@ -14,15 +14,19 @@ type CountdownStreamContainer struct {
 	FinishNotifier chan struct{}
 }
 
-func AddCountdownListener(ticketId string, stream pb.Frontend_WatchTicketCountdownServer, finishNotifier chan struct{}) {
+type countdownNotifierImpl struct {
+	CountdownNotifier
+	logger *zap.SugaredLogger
+}
+
+func (n *countdownNotifierImpl) AddCountdownListener(ticketId string, stream pb.Frontend_WatchTicketCountdownServer, finishNotifier chan struct{}) {
 	countdownStreams[ticketId] = append(countdownStreams[ticketId], CountdownStreamContainer{
 		Stream:         stream,
 		FinishNotifier: finishNotifier,
 	})
 }
 
-func NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) {
-	logger := zap.S()
+func (n *countdownNotifierImpl) NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) {
 	for _, ticket := range tickets {
 		for _, container := range countdownStreams[ticket.Id] {
 			err := container.Stream.Send(&pb.WatchCountdownResponse{
@@ -30,14 +34,13 @@ func NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) 
 			})
 
 			if err != nil {
-				logger.Error("Failed to send notification", zap.Error(err))
+				n.logger.Error("Failed to send notification", zap.Error(err))
 			}
 		}
 	}
 }
 
-func NotifyCountdownCancellation(tickets []*pb.Ticket) {
-	logger := zap.S()
+func (n *countdownNotifierImpl) NotifyCountdownCancellation(tickets []*pb.Ticket) {
 	for _, ticket := range tickets {
 		for _, container := range countdownStreams[ticket.Id] {
 			cancelled := true
@@ -46,13 +49,13 @@ func NotifyCountdownCancellation(tickets []*pb.Ticket) {
 			})
 
 			if err != nil {
-				logger.Error("Failed to send notification", zap.Error(err))
+				n.logger.Error("Failed to send notification", zap.Error(err))
 			}
 		}
 	}
 }
 
-func RemoveCountdownListener(ticketId string) {
+func (n *countdownNotifierImpl) RemoveCountdownListener(ticketId string) {
 	for _, container := range countdownStreams[ticketId] {
 		container.FinishNotifier <- struct{}{}
 	}

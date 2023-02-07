@@ -5,13 +5,8 @@ import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"go.uber.org/zap"
-	"kurushimi/internal/config/dynamic"
+	"kurushimi/internal/config"
 	"time"
-)
-
-var (
-// redsync *rs.Redsync
-// mutex *rs.Mutex
 )
 
 type redisStore struct {
@@ -19,10 +14,10 @@ type redisStore struct {
 	redisPool       *redis.Pool
 }
 
-func NewRedis(cfg dynamic.Config) StateStore {
+func NewRedis(cfg config.RedisConfig) StateStore {
 	return &redisStore{
-		healthCheckPool: getHealthCheckPool(cfg.Redis),
-		redisPool:       getRedisPool(cfg.Redis),
+		healthCheckPool: getHealthCheckPool(cfg),
+		redisPool:       getRedisPool(cfg),
 	}
 }
 
@@ -40,7 +35,7 @@ func (rs *redisStore) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func getHealthCheckPool(cfg dynamic.RedisConfig) *redis.Pool {
+func getHealthCheckPool(cfg config.RedisConfig) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:      3,
 		MaxActive:    0,
@@ -56,7 +51,7 @@ func getHealthCheckPool(cfg dynamic.RedisConfig) *redis.Pool {
 	}
 }
 
-func getRedisPool(cfg dynamic.RedisConfig) *redis.Pool {
+func getRedisPool(cfg config.RedisConfig) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:      3,
 		MaxActive:    0,
@@ -88,12 +83,3 @@ func handleConClose(conn redis.Conn) {
 		zap.S().Errorw("failed to close redis client connection.", err)
 	}
 }
-
-//func getRedisAddress() string {
-//	host := "localhost"
-//	if eHost := os.Getenv("REDIS_HOST"); eHost != "" {
-//		host = eHost
-//	}
-//
-//	return fmt.Sprintf("%s:6379", host)
-//}
