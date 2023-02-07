@@ -25,7 +25,7 @@ dependencies {
     api("org.apache.tomcat:annotations-api:6.0.53")
 
     compileOnly("dev.emortal.api:common-proto-sdk:0f7f5c0") // Used for Functional gRPC responses
-    compileOnly("com.github.Minestom.Minestom:Minestom:84846f663b") // Used for moving players to lobby
+    compileOnly("com.github.Minestom.Minestom:Minestom:aebf72de90") // Used for moving players to lobby
 
     api("io.grpc:grpc-netty:${grpcVersion}")
     api("io.grpc:grpc-stub:${grpcVersion}")
