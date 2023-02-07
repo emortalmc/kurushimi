@@ -28,16 +28,12 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 		logger.Fatalw("failed to create messenger", err)
 	}
 
-	app := director.KurushimiApplication{
-		StateStore: statestore.NewRedis(cfg.Redis),
-		Config:     cfg,
-		Messaging:  rmqMessenger,
-		Logger:     logger,
-	}
-	notifier := notifier.New(messenger)
+	stateStore := statestore.NewRedis(cfg.Redis)
 
-	frontend.Init(ctx, app)
-	director.Init(ctx, notifier, app)
+	notif := notifier.NewNotifier(logger, rmqMessenger)
+
+	frontend.Init(ctx, stateStore, notif)
+	director.Init(ctx, logger, notif, stateStore, cfg.Namespace)
 
 	select {
 	case <-ctx.Done():

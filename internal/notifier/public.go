@@ -6,7 +6,6 @@ import (
 	"kurushimi/pkg/pb"
 )
 
-// todo: merge some of these methods (e.g notifyTransport, NotifyMatchTeleport)
 type Notifier interface {
 	AddCountdownListener(ticketId string, stream pb.Frontend_WatchTicketCountdownServer, finishNotifier chan struct{})
 	RemoveCountdownListener(ticketId string)
@@ -15,7 +14,7 @@ type Notifier interface {
 	NotifyCountdownCancellation(tickets []*pb.Ticket)
 
 	AddAssignmentListener(ticketId string, stream pb.Frontend_WatchTicketAssignmentServer, finishNotifier chan struct{})
-	ClearAssignmentListeners(ticketId string)
+	RemoveAssignmentListener(ticketId string)
 
 	notifyAssignment(match *pb.Match)
 
