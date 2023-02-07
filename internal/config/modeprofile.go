@@ -5,6 +5,7 @@ import (
 	"kurushimi/internal/config/profile"
 	"kurushimi/internal/config/selector"
 	"kurushimi/internal/matchfunction/functions"
+	"kurushimi/internal/notifier"
 	"kurushimi/pkg/pb"
 	"time"
 )
@@ -34,7 +35,7 @@ var ModeProfiles = map[string]profile.ModeProfile{
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
 			return selector.CommonPlayerBasedSelector(profile, match, int64(len(match.Tickets)))
 		},
-		MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+		MatchFunction: func(_ notifier.Notifier, profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
 			matches, err := functions.MakeInstantMatches(profile, tickets)
 			return matches, nil, err
 		},
@@ -49,8 +50,8 @@ var ModeProfiles = map[string]profile.ModeProfile{
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
 			return selector.CommonSelector(profile, match)
 		},
-		MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
-			return functions.MakeCountdownMatches(profile, pendingMatches, tickets)
+		MatchFunction: func(notifier notifier.Notifier, profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+			return functions.MakeCountdownMatches(notifier, profile, pendingMatches, tickets)
 		},
 	},
 	"parkourtag": {
@@ -63,8 +64,8 @@ var ModeProfiles = map[string]profile.ModeProfile{
 		Selector: func(profile profile.ModeProfile, match *pb.Match) *v1.GameServerAllocation {
 			return selector.CommonSelector(profile, match)
 		},
-		MatchFunction: func(profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
-			return functions.MakeCountdownMatches(profile, pendingMatches, tickets)
+		MatchFunction: func(notifier notifier.Notifier, profile profile.ModeProfile, pendingMatches []*pb.PendingMatch, tickets []*pb.Ticket) ([]*pb.Match, []*pb.PendingMatch, error) {
+			return functions.MakeCountdownMatches(notifier, profile, pendingMatches, tickets)
 		},
 	},
 	//"minesweeper": {

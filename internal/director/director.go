@@ -12,6 +12,7 @@ import (
 	"kurushimi/internal/statestore"
 	"kurushimi/internal/utils/kubernetes"
 	"kurushimi/pkg/pb"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -66,15 +67,20 @@ func Init(ctx context.Context, logger *zap.SugaredLogger, notifier notifier.Noti
 
 // This is blocking so another run can't happen until this one is done.
 func (d *directorImpl) run(ctx context.Context, p profile.ModeProfile) {
-	matches, pendingMatches, err := matchfunction.Run(ctx, d.stateStore, p)
+	matches, pendingMatches, err := matchfunction.Run(ctx, d.notifier, d.stateStore, p)
 	if err != nil {
 		d.logger.Errorw("Failed to fetch matches", "profileName", p.Name, err)
 		return
 	}
 
 	// convert and pending matches to matches if they are ready to teleport
-	convMatches := d.handlePendingMatches(ctx, pendingMatches)
-	matches = append(matches, convMatches...)
+	if len(pendingMatches) > 0 {
+		convMatches := d.handlePendingMatches(ctx, pendingMatches)
+		matches = append(matches, convMatches...)
+	}
+	if len(matches) > 0 {
+		log.Printf("Found %d matches: %+v", len(matches), matches)
+	}
 
 	// NOTE: We don't add pendingMatch tickets here as they are depended upon
 	// to detect if someone leaves the queue before teleporting.

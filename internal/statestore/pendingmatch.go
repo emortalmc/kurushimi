@@ -2,10 +2,10 @@ package statestore
 
 import (
 	"context"
-	"github.com/golang/protobuf/proto"
 	"github.com/gomodule/redigo/redis"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"kurushimi/internal/config/profile"
 	"kurushimi/pkg/pb"
 )

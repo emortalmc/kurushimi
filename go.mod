@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	agones.dev/agones v1.28.0
-	github.com/emortalmc/grpc-api-specs v0.0.0-20230115213103-eab0754e43f7
 	github.com/golang/protobuf v1.5.2
 	github.com/gomodule/redigo v1.8.9
 	github.com/google/uuid v1.1.2
@@ -22,6 +21,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/emortalmc/proto-specs v0.0.0-20230206221630-0f7f5c090f9a // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

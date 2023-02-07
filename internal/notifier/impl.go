@@ -10,13 +10,13 @@ import (
 )
 
 type countdownStreamContainer struct {
-	Stream         pb.Frontend_WatchTicketCountdownServer
-	FinishNotifier chan struct{}
+	stream         pb.Frontend_WatchTicketCountdownServer
+	finishNotifier chan struct{}
 }
 
 type assignmentStreamContainer struct {
-	Stream         pb.Frontend_WatchTicketAssignmentServer
-	FinishNotifier chan struct{}
+	stream         pb.Frontend_WatchTicketAssignmentServer
+	finishNotifier chan struct{}
 }
 
 type notifierImpl struct {
@@ -41,22 +41,19 @@ func NewNotifier(logger *zap.SugaredLogger, messenger messenger.Messenger) Notif
 
 func (n *notifierImpl) AddCountdownListener(ticketId string, stream pb.Frontend_WatchTicketCountdownServer, finishNotifier chan struct{}) {
 	n.countdownStreams[ticketId] = append(n.countdownStreams[ticketId], countdownStreamContainer{
-		Stream:         stream,
-		FinishNotifier: finishNotifier,
+		stream:         stream,
+		finishNotifier: finishNotifier,
 	})
 }
 
 func (n *notifierImpl) RemoveCountdownListener(ticketId string) {
-	for _, container := range n.countdownStreams[ticketId] {
-		container.FinishNotifier <- struct{}{}
-	}
 	n.countdownStreams[ticketId] = nil
 }
 
 func (n *notifierImpl) NotifyCountdown(tickets []*pb.Ticket, teleportTime *timestamppb.Timestamp) {
 	for _, ticket := range tickets {
 		for _, container := range n.countdownStreams[ticket.Id] {
-			err := container.Stream.Send(&pb.WatchCountdownResponse{
+			err := container.stream.Send(&pb.WatchCountdownResponse{
 				TeleportTime: teleportTime,
 			})
 
@@ -71,7 +68,7 @@ func (n *notifierImpl) NotifyCountdownCancellation(tickets []*pb.Ticket) {
 	for _, ticket := range tickets {
 		for _, container := range n.countdownStreams[ticket.Id] {
 			cancelled := true
-			err := container.Stream.Send(&pb.WatchCountdownResponse{
+			err := container.stream.Send(&pb.WatchCountdownResponse{
 				Cancelled: &cancelled,
 			})
 
@@ -84,20 +81,12 @@ func (n *notifierImpl) NotifyCountdownCancellation(tickets []*pb.Ticket) {
 
 func (n *notifierImpl) AddAssignmentListener(ticketId string, stream pb.Frontend_WatchTicketAssignmentServer, finishNotifier chan struct{}) {
 	n.assignmentStreams[ticketId] = append(n.assignmentStreams[ticketId], assignmentStreamContainer{
-		Stream:         stream,
-		FinishNotifier: finishNotifier,
+		stream:         stream,
+		finishNotifier: finishNotifier,
 	})
 }
 
 func (n *notifierImpl) RemoveAssignmentListener(ticketId string) {
-	for _, container := range n.assignmentStreams[ticketId] {
-		container.FinishNotifier <- struct{}{}
-	}
-	n.assignmentStreams[ticketId] = nil
-}
-
-func (n *notifierImpl) RemoveAssignmentStream(ticketId string) {
-	n.logger.Info("Removing assignment stream")
 	n.assignmentStreams[ticketId] = nil
 }
 
@@ -108,7 +97,7 @@ func (n *notifierImpl) notifyAssignment(match *pb.Match) {
 	}
 	for _, ticket := range match.Tickets {
 		for _, container := range n.assignmentStreams[ticket.Id] {
-			err := container.Stream.Send(&pb.WatchAssignmentResponse{
+			err := container.stream.Send(&pb.WatchAssignmentResponse{
 				Assignment: match.Assignment,
 			})
 
@@ -118,7 +107,7 @@ func (n *notifierImpl) notifyAssignment(match *pb.Match) {
 
 			// An assignment is only sent once, so we can remove the container/container
 			// even if there is an error.
-			container.FinishNotifier <- struct{}{}
+			container.finishNotifier <- struct{}{}
 		}
 	}
 }
@@ -129,13 +118,18 @@ func (n *notifierImpl) NotifyMatchTeleport(ctx context.Context, match *pb.Match)
 	if err != nil {
 		return err
 	}
+	log.Printf("Match %s has been notified", match.Id)
 	n.notifyAssignment(match)
+	log.Printf("Match %s has been notified of assignment", match.Id)
 
 	// remove from countdowns
 	for _, ticket := range match.Tickets {
+		log.Printf("Removing countdown for ticket %s", ticket.Id)
 		n.RemoveCountdownListener(ticket.Id)
+		log.Printf("Removing assignment for ticket %s", ticket.Id)
 		n.RemoveAssignmentListener(ticket.Id)
 	}
+	log.Printf("Match %s has been removed from countdowns", match.Id)
 	return nil
 }
 

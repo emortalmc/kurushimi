@@ -2,8 +2,8 @@ package messenger
 
 import (
 	"context"
-	"github.com/emortalmc/grpc-api-specs/gen/go/messaging/general"
-	"github.com/emortalmc/grpc-api-specs/gen/go/service/server_discovery"
+	"github.com/emortalmc/proto-specs/gen/go/message/common"
+	commonmodel "github.com/emortalmc/proto-specs/gen/go/model/common"
 	"github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -33,8 +33,8 @@ func NewRabbitMQMessenger(logger *zap.SugaredLogger, conn *amqp091.Connection) (
 }
 
 func (m *rabbitMqMessenger) SwitchPlayerServer(ctx context.Context, assignment *pb.Assignment, playerIds []string) error {
-	msg := general.ProxyServerSwitchMessage{
-		Server: &server_discovery.ConnectableServer{
+	msg := common.SwitchPlayersServerMessage{
+		Server: &commonmodel.ConnectableServer{
 			Id:      assignment.ServerId,
 			Address: assignment.ServerAddress,
 			Port:    assignment.ServerPort,
