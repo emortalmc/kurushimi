@@ -25,6 +25,7 @@ type MatchmakerClient interface {
 	QueueByPlayer(ctx context.Context, in *QueueByPlayerRequest, opts ...grpc.CallOption) (*QueueByPlayerResponse, error)
 	DequeueByPlayer(ctx context.Context, in *DequeueByPlayerRequest, opts ...grpc.CallOption) (*DequeueByPlayerResponse, error)
 	ChangePlayerMapVote(ctx context.Context, in *ChangePlayerMapVoteRequest, opts ...grpc.CallOption) (*ChangePlayerMapVoteResponse, error)
+	GetPlayerQueueInfo(ctx context.Context, in *GetPlayerQueueInfoRequest, opts ...grpc.CallOption) (*GetPlayerQueueInfoResponse, error)
 }
 
 type matchmakerClient struct {
@@ -62,6 +63,15 @@ func (c *matchmakerClient) ChangePlayerMapVote(ctx context.Context, in *ChangePl
 	return out, nil
 }
 
+func (c *matchmakerClient) GetPlayerQueueInfo(ctx context.Context, in *GetPlayerQueueInfoRequest, opts ...grpc.CallOption) (*GetPlayerQueueInfoResponse, error) {
+	out := new(GetPlayerQueueInfoResponse)
+	err := c.cc.Invoke(ctx, "/dev.emortal.kurushimi.grpc.Matchmaker/GetPlayerQueueInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MatchmakerServer is the server API for Matchmaker service.
 // All implementations must embed UnimplementedMatchmakerServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type MatchmakerServer interface {
 	QueueByPlayer(context.Context, *QueueByPlayerRequest) (*QueueByPlayerResponse, error)
 	DequeueByPlayer(context.Context, *DequeueByPlayerRequest) (*DequeueByPlayerResponse, error)
 	ChangePlayerMapVote(context.Context, *ChangePlayerMapVoteRequest) (*ChangePlayerMapVoteResponse, error)
+	GetPlayerQueueInfo(context.Context, *GetPlayerQueueInfoRequest) (*GetPlayerQueueInfoResponse, error)
 	mustEmbedUnimplementedMatchmakerServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedMatchmakerServer) DequeueByPlayer(context.Context, *DequeueBy
 }
 func (UnimplementedMatchmakerServer) ChangePlayerMapVote(context.Context, *ChangePlayerMapVoteRequest) (*ChangePlayerMapVoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePlayerMapVote not implemented")
+}
+func (UnimplementedMatchmakerServer) GetPlayerQueueInfo(context.Context, *GetPlayerQueueInfoRequest) (*GetPlayerQueueInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlayerQueueInfo not implemented")
 }
 func (UnimplementedMatchmakerServer) mustEmbedUnimplementedMatchmakerServer() {}
 
@@ -152,6 +166,24 @@ func _Matchmaker_ChangePlayerMapVote_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Matchmaker_GetPlayerQueueInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPlayerQueueInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MatchmakerServer).GetPlayerQueueInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/dev.emortal.kurushimi.grpc.Matchmaker/GetPlayerQueueInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MatchmakerServer).GetPlayerQueueInfo(ctx, req.(*GetPlayerQueueInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Matchmaker_ServiceDesc is the grpc.ServiceDesc for Matchmaker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +202,10 @@ var Matchmaker_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangePlayerMapVote",
 			Handler:    _Matchmaker_ChangePlayerMapVote_Handler,
+		},
+		{
+			MethodName: "GetPlayerQueueInfo",
+			Handler:    _Matchmaker_GetPlayerQueueInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

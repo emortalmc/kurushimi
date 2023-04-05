@@ -16,6 +16,14 @@ type QueuedPlayer struct {
 	MapId *string `bson:"mapId,omitempty"`
 }
 
+func (q *QueuedPlayer) ToProto() *pb.QueuedPlayer {
+	return &pb.QueuedPlayer{
+		Id:       q.PlayerId.String(),
+		TicketId: q.TicketId.Hex(),
+		MapId:    q.MapId,
+	}
+}
+
 type Ticket struct {
 	Id primitive.ObjectID `bson:"_id"`
 

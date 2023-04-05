@@ -6,10 +6,13 @@ option java_outer_classname = "KurushimiFrontendProto";
 option java_multiple_files = true;
 option go_package = "github.com/emortalmc/kurushimi/pkg/pb";
 
+import "models.proto";
+
 service Matchmaker {
   rpc QueueByPlayer(QueueByPlayerRequest) returns (QueueByPlayerResponse) {}
   rpc DequeueByPlayer(DequeueByPlayerRequest) returns (DequeueByPlayerResponse) {}
   rpc ChangePlayerMapVote(ChangePlayerMapVoteRequest) returns (ChangePlayerMapVoteResponse) {}
+  rpc GetPlayerQueueInfo(GetPlayerQueueInfoRequest) returns (GetPlayerQueueInfoResponse) {}
 }
 
 message QueueByPlayerRequest {
@@ -81,4 +84,15 @@ message ChangePlayerMapVoteErrorResponse {
   }
 
   ErrorReason reason = 1;
+}
+
+message GetPlayerQueueInfoRequest {
+  string player_id = 1;
+}
+
+message GetPlayerQueueInfoResponse {
+  model.Ticket ticket = 1;
+  model.QueuedPlayer queued_player = 2;
+
+  optional model.PendingMatch pending_match = 3;
 }

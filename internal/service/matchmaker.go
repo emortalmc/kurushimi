@@ -188,13 +188,13 @@ func (m *matchmakerService) QueueByPlayer(ctx context.Context, request *pb.Queue
 
 var (
 	dequeueNotInQueueErr = panicIfErr(status.New(codes.NotFound, "player is not in queue").
-		WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NOT_IN_QUEUE})).Err()
+				WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NOT_IN_QUEUE})).Err()
 
 	dequeueNoPermissionErr = panicIfErr(status.New(codes.PermissionDenied, "player does not have permission to dequeue").
-		WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NO_PERMISSION})).Err()
+				WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NO_PERMISSION})).Err()
 
 	dequeueAlreadyDequeuedErr = panicIfErr(status.New(codes.AlreadyExists, "party is already requested for dequeue").
-		WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_ALREADY_MARKED_FOR_DEQUEUE})).Err()
+					WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_ALREADY_MARKED_FOR_DEQUEUE})).Err()
 )
 
 // DequeueByPlayer requests a player is dequeued from a game. Note that this player acts on behalf of the party, not themselves.
@@ -237,10 +237,10 @@ func (m *matchmakerService) DequeueByPlayer(ctx context.Context, request *pb.Deq
 
 var (
 	changeMapInvalidMapErr = panicIfErr(status.New(codes.InvalidArgument, "invalid map_id").
-		WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_INVALID_MAP})).Err()
+				WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_INVALID_MAP})).Err()
 
 	changeMapNotInQueueErr = panicIfErr(status.New(codes.NotFound, "player is not in queue").
-		WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_NOT_IN_QUEUE})).Err()
+				WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_NOT_IN_QUEUE})).Err()
 )
 
 func (m *matchmakerService) ChangePlayerMapVote(ctx context.Context, request *pb.ChangePlayerMapVoteRequest) (*pb.ChangePlayerMapVoteResponse, error) {
@@ -264,6 +264,47 @@ func (m *matchmakerService) ChangePlayerMapVote(ctx context.Context, request *pb
 	}
 
 	return &pb.ChangePlayerMapVoteResponse{}, nil
+}
+
+func (m *matchmakerService) GetPlayerQueueInfo(ctx context.Context, request *pb.GetPlayerQueueInfoRequest) (*pb.GetPlayerQueueInfoResponse, error) {
+	playerId, err := uuid.Parse(request.PlayerId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid player_id")
+	}
+
+	ticket, err := m.repo.GetTicketByPlayerId(ctx, playerId)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, status.Error(codes.NotFound, "player is not in queue")
+		}
+
+		return nil, err
+	}
+
+	queuedPlayer, err := m.repo.GetQueuedPlayerById(ctx, playerId)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, status.Error(codes.NotFound, "player is not in queue")
+		}
+
+		return nil, err
+	}
+
+	var pbPendingMatch *pb.PendingMatch
+	if ticket.InPendingMatch {
+		match, err := m.repo.GetPendingMatchByTicketId(ctx, ticket.Id)
+		if err == nil {
+			pbPendingMatch = match.ToProto()
+		} else if err != mongo.ErrNoDocuments {
+			return nil, err
+		}
+	}
+
+	return &pb.GetPlayerQueueInfoResponse{
+		Ticket:       ticket.ToProto(),
+		QueuedPlayer: queuedPlayer.ToProto(),
+		PendingMatch: pbPendingMatch,
+	}, nil
 }
 
 func (m *matchmakerService) isMapIdValid(mapId string) bool {

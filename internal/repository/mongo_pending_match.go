@@ -72,6 +72,19 @@ func (m *mongoRepository) GetPendingMatchesByGameMode(ctx context.Context, gameM
 	return matches, nil
 }
 
+func (m *mongoRepository) GetPendingMatchByTicketId(ctx context.Context, ticketId primitive.ObjectID) (*model.PendingMatch, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var match model.PendingMatch
+
+	if err := m.pendingMatchCollection.FindOne(ctx, bson.M{"ticketIds": ticketId}).Decode(&match); err != nil {
+		return nil, err
+	}
+
+	return &match, nil
+}
+
 func (m *mongoRepository) RemoveTicketsFromPendingMatchesById(ctx context.Context, ticketIds []primitive.ObjectID) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

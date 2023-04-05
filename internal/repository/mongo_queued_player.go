@@ -70,6 +70,18 @@ func (m *mongoRepository) DeleteAllQueuedPlayersById(ctx context.Context, player
 	return result.DeletedCount, nil
 }
 
+func (m *mongoRepository) GetQueuedPlayerById(ctx context.Context, playerId uuid.UUID) (*model.QueuedPlayer, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	var player model.QueuedPlayer
+	if err := m.queuedPlayerCollection.FindOne(ctx, bson.M{"_id": playerId}).Decode(&player); err != nil {
+		return nil, err
+	}
+
+	return &player, nil
+}
+
 func (m *mongoRepository) GetAllQueuedPlayersByIds(ctx context.Context, playerIds []uuid.UUID) ([]*model.QueuedPlayer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

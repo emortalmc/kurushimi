@@ -29,6 +29,7 @@ type Repository interface {
 
 	CreateQueuedPlayers(ctx context.Context, players []*model.QueuedPlayer) error
 	DeleteQueuedPlayer(ctx context.Context, playerId uuid.UUID) error
+	GetQueuedPlayerById(ctx context.Context, playerId uuid.UUID) (*model.QueuedPlayer, error)
 
 	GetAllQueuedPlayersByIds(ctx context.Context, playerIds []uuid.UUID) ([]*model.QueuedPlayer, error)
 
@@ -78,6 +79,7 @@ type Repository interface {
 	UpsertPendingMatches(ctx context.Context, matches []*model.PendingMatch) error
 	DeletePendingMatches(ctx context.Context, matchIds []primitive.ObjectID) error
 	GetPendingMatchesByGameMode(ctx context.Context, gameModeId string) ([]*model.PendingMatch, error)
+	GetPendingMatchByTicketId(ctx context.Context, ticketId primitive.ObjectID) (*model.PendingMatch, error)
 
 	// RemoveTicketsFromPendingMatchesById removes ticket IDs from PendingMatches they are present in.
 	// returns: int64, the modified count.
