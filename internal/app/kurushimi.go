@@ -2,41 +2,97 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
+	"github.com/emortalmc/proto-specs/gen/go/grpc/party"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"kurushimi/internal/config"
 	"kurushimi/internal/director"
-	"kurushimi/internal/frontend"
-	"kurushimi/internal/notifier"
-	"kurushimi/internal/rabbitmq"
-	"kurushimi/internal/rabbitmq/messenger"
-	"kurushimi/internal/statestore"
+	"kurushimi/internal/kafka"
+	"kurushimi/internal/repository"
+	"kurushimi/internal/service"
 	"kurushimi/internal/utils/kubernetes"
+	"kurushimi/pkg/pb"
+	"net"
+	"time"
 )
 
 func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
-	logger.Infow("starting kurushimi", "profileCount", len(config.ModeProfiles), "profiles", config.ModeProfiles)
-
-	kubernetes.Init()
-
-	rabbitConn, err := rabbitmq.NewConnection(cfg.RabbitMq)
+	logger.Info("starting kurushimi")
+	// Parse gamemode configs
+	gameModeController, err := liveconfig.NewGameModeConfigController(logger)
 	if err != nil {
-		logger.Fatalw("failed to connect to rabbitmq", err)
+		logger.Fatalw("failed to create game mode config controller", err)
 	}
 
-	rmqMessenger, err := messenger.NewRabbitMQMessenger(logger, rabbitConn)
+	gameModes := gameModeController.GetConfigs()
+
+	modeNames := make([]string, 0)
+	for id := range gameModes {
+		modeNames = append(modeNames, id)
+	}
+	logger.Infow("loaded initial gamemodes", "modeCount", len(gameModes), "modes", modeNames)
+
+	_, agonesClient := kubernetes.CreateClients()
+
+	repo, err := repository.NewMongoRepository(ctx, cfg.MongoDB)
 	if err != nil {
-		logger.Fatalw("failed to create messenger", err)
+		logger.Fatalw("failed to connect to mongo", err)
 	}
 
-	stateStore := statestore.NewRedis(cfg.Redis)
+	notifier := kafka.NewKafkaNotifier(cfg.Kafka, logger)
 
-	notif := notifier.NewNotifier(logger, rmqMessenger)
-
-	frontend.Init(ctx, stateStore, notif)
-	director.Init(ctx, logger, notif, stateStore, cfg.Namespace)
-
-	select {
-	case <-ctx.Done():
-		return
+	err = repo.HealthCheck(ctx, 5*time.Second)
+	if err != nil {
+		logger.Fatalw("failed to connect to mongo", err)
 	}
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
+	if err != nil {
+		logger.Fatalw("failed to listen", err)
+	}
+
+	s := grpc.NewServer(grpc.ChainUnaryInterceptor(grpc_zap.UnaryServerInterceptor(logger.Desugar(), grpc_zap.WithLevels(func(code codes.Code) zapcore.Level {
+		if code != codes.Internal && code != codes.Unavailable && code != codes.Unknown {
+			return zapcore.DebugLevel
+		} else {
+			return zapcore.ErrorLevel
+		}
+	}))))
+
+	pConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.ServiceHost, cfg.PartyService.ServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatalw("failed to connect to party service", err)
+	}
+	partyService := party.NewPartyServiceClient(pConn)
+
+	pSConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.SettingsServiceHost, cfg.PartyService.SettingsServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatalw("failed to connect to party service", err)
+	}
+	partySettingsService := party.NewPartySettingsServiceClient(pSConn)
+
+	pb.RegisterMatchmakerServer(s, service.NewMatchmakerService(repo, notifier, gameModeController, partyService, partySettingsService))
+
+	logger.Infow("started kurushimi listener", "port", cfg.Port)
+
+	go func() {
+		err = s.Serve(lis)
+		if err != nil {
+			logger.Fatalw("failed to serve", err)
+			return
+		}
+	}()
+
+	directR := director.New(logger, repo, notifier, cfg.Namespace, agonesClient, gameModeController)
+	directR.Start(ctx)
+
+	<-ctx.Done()
+	logger.Info("shutting down kurushimi")
+	s.Stop()
 }

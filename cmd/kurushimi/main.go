@@ -19,12 +19,6 @@ func main() {
 		log.Fatal(err)
 	}
 	logger := unsugared.Sugar()
-	defer func(logger *zap.SugaredLogger) {
-		err := logger.Sync()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(logger)
 
 	ctx := context.Background()
 

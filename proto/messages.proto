@@ -1,52 +1,49 @@
 syntax = "proto3";
-package dev.emortal.kurushimi;
+package dev.emortal.kurushimi.messages;
 
-option java_package = "dev.emortal.api.kurushimi";
+option java_package = "dev.emortal.api.kurushimi.messages";
 option java_multiple_files = true;
 option go_package = "github.com/emortalmc/kurushimi/pkg/pb";
 
-import "google/protobuf/timestamp.proto";
+import "models.proto";
 
-message Ticket {
-  string id = 1;
-  string player_id = 2;
-  google.protobuf.Timestamp created_at = 3;
-
-  // A TTL for a ticket is useful if it is created to connect to a lobby
-  // If the ticket gets hung, it is no longer valid
-//  google.protobuf.Duration expire_after = 4;
-
-  SearchFields search_fields = 4;
-
-  // notify_proxy: If not specified, true.
-  // If true, the proxy will be notified of a ticket's assignment.
-  // If false, it is expected that you use WatchTicketAssignment to know when a ticket has been assigned.
-  optional bool notify_proxy = 5;
+message TicketCreatedMessage {
+  model.Ticket ticket = 1;
 }
 
-message SearchFields {
-  map<string, string> string_args = 1;
-  repeated string tags = 2;
+message TicketUpdatedMessage {
+  model.Ticket new_ticket = 1;
 }
 
-message Match {
-  string id = 1;
-  string profile_name = 2;
+// TicketDeletedMessage is sent when a ticket is deleted
+// NOTE: This is not when a delete request is received, but when the removal gets processed.
+// If this message is received, the ticket is no longer in any queue
+// NOTE 2: This is not fired when a PendingMatch is converted to a Match. In that case, only a MatchCreatedMessage is sent.
+message TicketDeletedMessage {
+  enum Reason {
+    GAME_MODE_DELETED = 0;
+    MANUAL_DEQUEUE = 1;
+    MATCH_CREATED = 2;
+  }
 
-  repeated Ticket tickets = 3;
-  optional Assignment assignment = 4;
+  model.Ticket ticket = 1;
+  Reason reason = 2;
 }
 
-message Assignment {
-  string server_id = 1;
-  string server_address = 2;
-  uint32 server_port = 3;
+message PendingMatchCreatedMessage {
+  model.PendingMatch pending_match = 1;
 }
 
-message PendingMatch {
-  string id = 1;
-  string profile_name = 2;
+// PendingMatchUpdatedMessage is sent when players join/leave a pending match
+// which can be used to update the UI with the player count
+message PendingMatchUpdatedMessage {
+  model.PendingMatch pending_match = 1;
+}
 
-  repeated Ticket tickets = 3;
-  google.protobuf.Timestamp teleport_time = 4;
+message PendingMatchDeletedMessage {
+  model.PendingMatch pending_match = 1;
+}
+
+message MatchCreatedMessage {
+  model.Match match = 1;
 }

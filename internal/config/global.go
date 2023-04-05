@@ -6,26 +6,43 @@ import (
 )
 
 type Config struct {
-	Redis     RedisConfig    `yaml:"redis"`
-	RabbitMq  RabbitMQConfig `yaml:"rabbitmq"`
-	Namespace string         `yaml:"namespace"`
+	MongoDB   *MongoDBConfig
+	RabbitMq  *RabbitMQConfig
+	Kafka     *KafkaConfig
+	Namespace string
 
-	Development bool `yaml:"development"`
+	PartyService *PartyServiceConfig
+
+	Port uint16
+
+	Development bool
 }
 
-type RedisConfig struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+type MongoDBConfig struct {
+	URI string
 }
 
 type RabbitMQConfig struct {
-	Host     string `yaml:"host"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Host     string
+	Username string
+	Password string
+}
+
+type KafkaConfig struct {
+	Host string
+	Port int
+}
+
+type PartyServiceConfig struct {
+	ServiceHost string
+	ServicePort uint16
+
+	SettingsServiceHost string
+	SettingsServicePort uint16
 }
 
 func LoadGlobalConfig() (config *Config, err error) {
-	viper.SetEnvPrefix("kurushimi")
+	viper.SetEnvPrefix("mm")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 

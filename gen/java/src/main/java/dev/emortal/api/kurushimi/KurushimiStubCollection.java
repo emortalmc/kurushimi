@@ -13,16 +13,16 @@ public class KurushimiStubCollection {
     private static final Logger LOGGER = LoggerFactory.getLogger(KurushimiStubCollection.class);
     private static final boolean DEVELOPMENT = System.getenv("HOSTNAME") == null;
 
-    private static final @NotNull Optional<FrontendGrpc.FrontendFutureStub> futureStub;
-    private static final @NotNull Optional<FrontendGrpc.FrontendStub> stub;
-    private static final @NotNull Optional<FrontendGrpc.FrontendBlockingStub> blockingStub;
+    private static final @NotNull Optional<MatchmakerGrpc.MatchmakerFutureStub> futureStub;
+    private static final @NotNull Optional<MatchmakerGrpc.MatchmakerStub> stub;
+    private static final @NotNull Optional<MatchmakerGrpc.MatchmakerBlockingStub> blockingStub;
 
     static {
         Optional<ManagedChannel> channel = createChannel();
         if (channel.isPresent()) {
-            futureStub = Optional.of(FrontendGrpc.newFutureStub(channel.get()));
-            stub = Optional.of(FrontendGrpc.newStub(channel.get()));
-            blockingStub = Optional.of(FrontendGrpc.newBlockingStub(channel.get()));
+            futureStub = Optional.of(MatchmakerGrpc.newFutureStub(channel.get()));
+            stub = Optional.of(MatchmakerGrpc.newStub(channel.get()));
+            blockingStub = Optional.of(MatchmakerGrpc.newBlockingStub(channel.get()));
         } else {
             futureStub = Optional.empty();
             stub = Optional.empty();
@@ -30,15 +30,15 @@ public class KurushimiStubCollection {
         }
     }
 
-    public static @NotNull Optional<FrontendGrpc.FrontendFutureStub> getFutureStub() {
+    public static @NotNull Optional<MatchmakerGrpc.MatchmakerFutureStub> getFutureStub() {
         return futureStub;
     }
 
-    public static @NotNull Optional<FrontendGrpc.FrontendStub> getStub() {
+    public static @NotNull Optional<MatchmakerGrpc.MatchmakerStub> getStub() {
         return stub;
     }
 
-    public static @NotNull Optional<FrontendGrpc.FrontendBlockingStub> getBlockingStub() {
+    public static @NotNull Optional<MatchmakerGrpc.MatchmakerBlockingStub> getBlockingStub() {
         return blockingStub;
     }
 
@@ -48,7 +48,7 @@ public class KurushimiStubCollection {
     private static Optional<ManagedChannel> createChannel() {
         String name = "matchmaker";
 
-        String envPort = System.getenv("MATCHMAKER_SERVICE_PORT"); // only used for dev
+        String envPort = System.getenv("MATCHMAKER_SERVICE_PORT");
 
         if (!DEVELOPMENT) {
             return Optional.of(ManagedChannelBuilder.forAddress(name, Integer.parseInt(envPort))

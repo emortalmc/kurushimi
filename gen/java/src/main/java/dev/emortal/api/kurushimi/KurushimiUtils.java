@@ -1,7 +1,15 @@
 package dev.emortal.api.kurushimi;
 
 import com.google.common.util.concurrent.Futures;
+import dev.emortal.api.kurushimi.messages.MatchCreatedMessage;
+import dev.emortal.api.kurushimi.messages.PendingMatchCreatedMessage;
+import dev.emortal.api.kurushimi.messages.PendingMatchDeletedMessage;
+import dev.emortal.api.kurushimi.messages.PendingMatchUpdatedMessage;
+import dev.emortal.api.kurushimi.messages.TicketCreatedMessage;
+import dev.emortal.api.kurushimi.messages.TicketDeletedMessage;
+import dev.emortal.api.kurushimi.messages.TicketUpdateMessage;
 import dev.emortal.api.utils.callback.FunctionalFutureCallback;
+import dev.emortal.api.utils.parser.ProtoParserRegistry;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventFilter;
@@ -9,7 +17,7 @@ import net.minestom.server.event.EventNode;
 import net.minestom.server.event.player.PlayerDisconnectEvent;
 import net.minestom.server.event.trait.PlayerEvent;
 import net.minestom.server.timer.Task;
-import net.minestom.server.timer.TaskSchedule;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +35,18 @@ public class KurushimiUtils {
 
     static {
         MinecraftServer.getGlobalEventHandler().addChild(EVENT_NODE);
+    }
+
+    public static void registerParserRegistry() {
+        ProtoParserRegistry.registerKafka(TicketCreatedMessage.getDefaultInstance(), TicketCreatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.registerKafka(TicketUpdateMessage.getDefaultInstance(), TicketUpdateMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.registerKafka(TicketDeletedMessage.getDefaultInstance(), TicketDeletedMessage::parseFrom, "matchmaker");
+
+        ProtoParserRegistry.registerKafka(PendingMatchCreatedMessage.getDefaultInstance(), PendingMatchCreatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.registerKafka(PendingMatchUpdatedMessage.getDefaultInstance(), PendingMatchUpdatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.registerKafka(PendingMatchDeletedMessage.getDefaultInstance(), PendingMatchDeletedMessage::parseFrom, "matchmaker");
+
+        ProtoParserRegistry.registerKafka(MatchCreatedMessage.getDefaultInstance(), MatchCreatedMessage::parseFrom, "matchmaker");
     }
 
     /**
@@ -78,15 +98,11 @@ public class KurushimiUtils {
         }
     }
 
-    private static void sendToLobby(Player player, Runnable failureRunnable) {
-        var ticketFuture = KurushimiStubCollection.getFutureStub().get().createTicket(CreateTicketRequest.newBuilder()
-                .setTicket(
-                        Ticket.newBuilder()
-                                .setPlayerId(player.getUuid().toString())
-                                .setSearchFields(
-                                        SearchFields.newBuilder().addTags("game.lobby")
-                                )
-                ).build());
+    private static void sendToLobby(@NotNull Player player, @NotNull Runnable failureRunnable) {
+        var ticketFuture = KurushimiStubCollection.getFutureStub().get().queueByPlayer(QueueByPlayerRequest.newBuilder()
+                .setPlayerId(player.getUuid().toString())
+                .setGameModeId("lobby")
+                .build());
 
         Futures.addCallback(ticketFuture, FunctionalFutureCallback.create(
                 ticket -> {

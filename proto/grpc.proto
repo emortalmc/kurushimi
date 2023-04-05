@@ -1,0 +1,84 @@
+syntax = "proto3";
+package dev.emortal.kurushimi.grpc;
+
+option java_package = "dev.emortal.api.kurushimi";
+option java_outer_classname = "KurushimiFrontendProto";
+option java_multiple_files = true;
+option go_package = "github.com/emortalmc/kurushimi/pkg/pb";
+
+service Matchmaker {
+  rpc QueueByPlayer(QueueByPlayerRequest) returns (QueueByPlayerResponse) {}
+  rpc DequeueByPlayer(DequeueByPlayerRequest) returns (DequeueByPlayerResponse) {}
+  rpc ChangePlayerMapVote(ChangePlayerMapVoteRequest) returns (ChangePlayerMapVoteResponse) {}
+}
+
+message QueueByPlayerRequest {
+  string game_mode_id = 1;
+
+  // player_id of type UUID
+  string player_id = 2;
+
+  // private_game defaults to false. If true, gamemode will be created as an instant private game.
+  optional bool private_game = 3;
+
+  // voting
+  optional string map_id = 4;
+
+  // auto_teleport if true or not specified, the proxy will listen for match messages and teleport the player to the match.
+  // if false, the proxy will not auto-teleport the player and you should listen for match messages yourself.
+  //
+  // e.g. this is used by the proxy for lobby matchmaking as it is handled differently
+  // to when the player is already connected to the server.
+  optional bool auto_teleport = 5;
+}
+
+message QueueByPlayerResponse {}
+
+message QueueByPlayerErrorResponse {
+  enum ErrorReason {
+    ALREADY_IN_QUEUE = 0;
+
+
+    INVALID_GAME_MODE = 1;
+    GAME_MODE_DISABLED = 2;
+    INVALID_MAP = 3;
+
+    PARTY_TOO_LARGE = 4;
+    PARTIES_NOT_ALLOWED = 5;
+  }
+
+  ErrorReason reason = 1;
+}
+
+message DequeueByPlayerRequest {
+  // player_id of type UUID
+  string player_id = 1;
+}
+
+message DequeueByPlayerResponse {}
+
+message DequeueByPlayerErrorResponse {
+  enum ErrorReason {
+    NOT_IN_QUEUE = 0;
+    NO_PERMISSION = 1;
+    ALREADY_MARKED_FOR_DEQUEUE = 2;
+  }
+
+  ErrorReason reason = 1;
+}
+
+message ChangePlayerMapVoteRequest {
+  string player_id = 1;
+  string map_id = 2;
+}
+
+message ChangePlayerMapVoteResponse {}
+
+message ChangePlayerMapVoteErrorResponse {
+  enum ErrorReason {
+    INVALID_MAP = 0;
+    NOT_IN_QUEUE = 1;
+  }
+
+  ErrorReason reason = 1;
+}

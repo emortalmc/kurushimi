@@ -5,31 +5,29 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"kurushimi/internal/utils"
+	"time"
 )
 
-var (
-	KubeClient kubernetes.Interface
-
-	// AgonesClient contains the Agones client for creating GameServerAllocation objects
-	AgonesClient versioned.Interface
-)
-
-func Init() {
+func CreateClients() (kubeClient *kubernetes.Clientset, agonesClient *versioned.Clientset) {
 	kubeConfig, err := createKubernetesConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	KubeClient = kubernetes.NewForConfigOrDie(kubeConfig)
+	kubeClient = kubernetes.NewForConfigOrDie(kubeConfig)
 
 	// AgonesClient contains the Agones client for creating GameServerAllocation objects
-	AgonesClient = versioned.NewForConfigOrDie(kubeConfig)
+	agonesClient = versioned.NewForConfigOrDie(kubeConfig)
+
+	return kubeClient, agonesClient
 }
 
 func createKubernetesConfig() (*rest.Config, error) {
-	kConfig, err := utils.CreateKubernetesConfig()
+	config, err := utils.CreateKubernetesConfig()
 	if err != nil {
 		return nil, err
 	}
-	return kConfig, nil
+
+	config.Timeout = time.Second * 5
+	return config, nil
 }
