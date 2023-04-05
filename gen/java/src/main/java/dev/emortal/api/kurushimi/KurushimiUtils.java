@@ -7,7 +7,7 @@ import dev.emortal.api.kurushimi.messages.PendingMatchDeletedMessage;
 import dev.emortal.api.kurushimi.messages.PendingMatchUpdatedMessage;
 import dev.emortal.api.kurushimi.messages.TicketCreatedMessage;
 import dev.emortal.api.kurushimi.messages.TicketDeletedMessage;
-import dev.emortal.api.kurushimi.messages.TicketUpdateMessage;
+import dev.emortal.api.kurushimi.messages.TicketUpdatedMessage;
 import dev.emortal.api.utils.callback.FunctionalFutureCallback;
 import dev.emortal.api.utils.parser.ProtoParserRegistry;
 import net.minestom.server.MinecraftServer;
@@ -39,7 +39,7 @@ public class KurushimiUtils {
 
     public static void registerParserRegistry() {
         ProtoParserRegistry.registerKafka(TicketCreatedMessage.getDefaultInstance(), TicketCreatedMessage::parseFrom, "matchmaker");
-        ProtoParserRegistry.registerKafka(TicketUpdateMessage.getDefaultInstance(), TicketUpdateMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.registerKafka(TicketUpdatedMessage.getDefaultInstance(), TicketUpdatedMessage::parseFrom, "matchmaker");
         ProtoParserRegistry.registerKafka(TicketDeletedMessage.getDefaultInstance(), TicketDeletedMessage::parseFrom, "matchmaker");
 
         ProtoParserRegistry.registerKafka(PendingMatchCreatedMessage.getDefaultInstance(), PendingMatchCreatedMessage::parseFrom, "matchmaker");
