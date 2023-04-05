@@ -10,30 +10,13 @@ import (
 	"time"
 )
 
-// RunCountdown
-// returns:
-// - updatedPendingMatches: pending matches that have been created or updated. These should be saved with upsert.
-// - deletedPendingMatches: pending matches that have been deleted (either because < min players or converted to a Match)
-// - createdMatches: matches that have been created.
-// TODO what about the tickets no longer used?
-func RunCountdown(logger *zap.SugaredLogger, tickets []*model.Ticket, pendingMatches []*model.PendingMatch, config *liveconfig.GameModeConfig) (
-	createdPendingMatches []*model.PendingMatch, updatedPendingMatches []*model.PendingMatch,
-	deletedPendingMatches []*model.PendingMatch, createdMatches []*pb.Match, err error) {
+// CountdownRemoveInvalidPendingMatches removes pending matches from the pendingMatches array that don't have enough players.
+// returns the pending matches that have been removed.
+func CountdownRemoveInvalidPendingMatches(logger *zap.SugaredLogger, pendingMatches []*model.PendingMatch,
+	tickets map[primitive.ObjectID]*model.Ticket, config *liveconfig.GameModeConfig) (deletedPendingMatches []*model.PendingMatch) {
 
-	updatedPendingMatches = make([]*model.PendingMatch, 0)
-	deletedPendingMatches = make([]*model.PendingMatch, 0)
-	createdMatches = make([]*pb.Match, 0)
-
-	ticketMap := make(map[primitive.ObjectID]*model.Ticket)
-	for _, ticket := range tickets {
-		ticketMap[ticket.Id] = ticket
-	}
-
-	logger.Debugw("RunCountdown", "ticketCount", len(tickets), "pendingMatchesCount", len(pendingMatches), "config", config.Id)
-
-	// Go through and cancel pending matches with insufficient players (due to leavers in the cleanup phase)
 	for i, pendingMatch := range pendingMatches {
-		playerCount := getPendingMatchPlayerCount(ticketMap, pendingMatch)
+		playerCount := getPendingMatchPlayerCount(tickets, pendingMatch)
 		if playerCount < config.MinPlayers {
 			deletedPendingMatches = append(deletedPendingMatches, pendingMatch)
 
@@ -42,12 +25,31 @@ func RunCountdown(logger *zap.SugaredLogger, tickets []*model.Ticket, pendingMat
 
 			// put tickets back into the pool
 			for _, ticketId := range pendingMatch.TicketIds {
-				if ticket, ok := ticketMap[ticketId]; ok {
+				if ticket, ok := tickets[ticketId]; ok {
 					ticket.UpdateInPendingMach(false)
 				}
 			}
 		}
 	}
+
+	return
+}
+
+// RunCountdown
+// returns:
+// - updatedPendingMatches: pending matches that have been created or updated. These should be saved with upsert.
+// - deletedPendingMatches: pending matches that have been deleted (either because < min players or converted to a Match)
+// - createdMatches: matches that have been created.
+// TODO what about the tickets no longer used?
+func RunCountdown(logger *zap.SugaredLogger, ticketMap map[primitive.ObjectID]*model.Ticket, pendingMatches []*model.PendingMatch, config *liveconfig.GameModeConfig) (
+	createdPendingMatches []*model.PendingMatch, updatedPendingMatches []*model.PendingMatch,
+	deletedPendingMatches []*model.PendingMatch, createdMatches []*pb.Match, err error) {
+
+	updatedPendingMatches = make([]*model.PendingMatch, 0)
+	deletedPendingMatches = make([]*model.PendingMatch, 0)
+	createdMatches = make([]*pb.Match, 0)
+
+	logger.Debugw("RunCountdown", "ticketCount", len(ticketMap), "pendingMatchesCount", len(pendingMatches), "config", config.Id)
 
 	remainingTicketMap := make(map[primitive.ObjectID]*model.Ticket)
 	for ticketId, ticket := range ticketMap {

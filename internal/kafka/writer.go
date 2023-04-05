@@ -15,16 +15,13 @@ const writeTopic = "matchmaker"
 
 // TODO fire these methods
 type Notifier interface {
-	// DONE
 	TicketCreated(ctx context.Context, ticket *model.Ticket) error
-	// TODO
 	TicketUpdated(ctx context.Context, ticket *model.Ticket) error
-	// DONE
 	TicketDeleted(ctx context.Context, ticket *pb.Ticket, reason pb.TicketDeletedMessage_Reason) error
 
 	PendingMatchCreated(ctx context.Context, match *model.PendingMatch) error
 	PendingMatchUpdated(ctx context.Context, match *model.PendingMatch) error
-	PendingMatchDeleted(ctx context.Context, match *model.PendingMatch) error
+	PendingMatchDeleted(ctx context.Context, match *model.PendingMatch, reason pb.PendingMatchDeletedMessage_Reason) error
 
 	MatchCreated(ctx context.Context, match *pb.Match) error
 }
@@ -135,11 +132,11 @@ func (k *kafkaNotifier) PendingMatchUpdated(ctx context.Context, match *model.Pe
 	return err
 }
 
-func (k *kafkaNotifier) PendingMatchDeleted(ctx context.Context, match *model.PendingMatch) error {
+func (k *kafkaNotifier) PendingMatchDeleted(ctx context.Context, match *model.PendingMatch, reason pb.PendingMatchDeletedMessage_Reason) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.PendingMatchDeletedMessage{PendingMatch: match.ToProto()}
+	pMsg := &pb.PendingMatchDeletedMessage{PendingMatch: match.ToProto(), Reason: reason}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err

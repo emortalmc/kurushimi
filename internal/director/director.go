@@ -205,7 +205,34 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			return nil, err
 		}
 
-		createdPending, updatedPending, deletedPending, createdMatches, err := matchfunction2.RunCountdown(d.logger, tickets, pendingMatches, config)
+		// Create a ticket map
+		ticketMap := make(map[primitive.ObjectID]*model.Ticket)
+		for _, ticket := range tickets {
+			ticketMap[ticket.Id] = ticket
+		}
+
+		// Clean up existing pending matches
+		deletedPending := matchfunction2.CountdownRemoveInvalidPendingMatches(d.logger, pendingMatches, ticketMap, config)
+
+		// Delete matches from db and notify with reason cancelled
+		if len(deletedPending) > 0 {
+			for _, match := range deletedPending {
+				if err := d.notifier.PendingMatchDeleted(ctx, match, pb.PendingMatchDeletedMessage_CANCELLED); err != nil {
+					d.logger.Errorw("failed to send pending match deleted notification", "error", err)
+				}
+			}
+
+			// Delete the pending matches from the db
+			deletedIds := make([]primitive.ObjectID, 0)
+			for _, match := range deletedPending {
+				deletedIds = append(deletedIds, match.Id)
+			}
+			if err := d.repo.DeletePendingMatches(ctx, deletedIds); err != nil {
+				return nil, err
+			}
+		}
+
+		createdPending, updatedPending, deletedPending, createdMatches, err := matchfunction2.RunCountdown(d.logger, ticketMap, pendingMatches, config)
 		if err != nil {
 			return nil, err
 		}
@@ -248,6 +275,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			}
 		}
 
+		// Delete pending matches from DB and notify with reason match created
 		if len(deletedPending) > 0 {
 			deletedIds := make([]primitive.ObjectID, 0)
 			for _, pending := range deletedPending {
@@ -260,7 +288,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			}
 
 			for _, match := range deletedPending {
-				if err := d.notifier.PendingMatchDeleted(ctx, match); err != nil {
+				if err := d.notifier.PendingMatchDeleted(ctx, match, pb.PendingMatchDeletedMessage_MATCH_CREATED); err != nil {
 					d.logger.Errorw("failed to notify pending match deleted", "error", err)
 				}
 			}

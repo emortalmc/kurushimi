@@ -54,7 +54,7 @@ func (m *matchmakerService) QueueByPlayer(ctx context.Context, request *pb.Queue
 	// check if game_mode is valid
 	modeConfig := m.cfgController.GetCurrentConfig(request.GameModeId)
 	if modeConfig == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid game_mode_id")
+		return nil, status.Error(codes.InvalidArgument, "invalid game_mode_id "+request.GameModeId)
 	}
 
 	// check if map is present

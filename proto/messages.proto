@@ -41,7 +41,13 @@ message PendingMatchUpdatedMessage {
 }
 
 message PendingMatchDeletedMessage {
+  enum Reason {
+    CANCELLED = 0;
+    MATCH_CREATED = 1;
+  }
+
   model.PendingMatch pending_match = 1;
+  Reason reason = 2;
 }
 
 message MatchCreatedMessage {
