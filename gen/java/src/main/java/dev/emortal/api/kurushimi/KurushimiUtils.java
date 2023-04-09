@@ -31,11 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KurushimiUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(KurushimiUtils.class);
-    private static final EventNode<PlayerEvent> EVENT_NODE = EventNode.type("kurushimi-utils", EventFilter.PLAYER);
-
-    static {
-        MinecraftServer.getGlobalEventHandler().addChild(EVENT_NODE);
-    }
 
     public static void registerParserRegistry() {
         ProtoParserRegistry.registerKafka(TicketCreatedMessage.getDefaultInstance(), TicketCreatedMessage::parseFrom, "matchmaker");
@@ -47,80 +42,5 @@ public class KurushimiUtils {
         ProtoParserRegistry.registerKafka(PendingMatchDeletedMessage.getDefaultInstance(), PendingMatchDeletedMessage::parseFrom, "matchmaker");
 
         ProtoParserRegistry.registerKafka(MatchCreatedMessage.getDefaultInstance(), MatchCreatedMessage::parseFrom, "matchmaker");
-    }
-
-    /**
-     * Note: The failure runnable is only run at the end of the time if players are not sent.
-     * If there are other errors, they may only affect one player and resolve with retries.
-     *
-     * @param players         The player ids to queue for a lobby
-     * @param successRunnable A runnable to run when all players are connected to the lobby.
-     * @param failureRunnable A runnable to run when the sender gives up sending players.
-     * @param retries         The amount of retries to send players to the lobby before giving up.
-     */
-    // todo retries
-    // todo store player tickets so if we assume a cancellation, we delete the ticket
-    public static void sendToLobby(Collection<? extends Player> players, Runnable successRunnable,
-                                   Runnable failureRunnable, int retries) {
-        if (KurushimiStubCollection.getStub().isEmpty()) {
-            throw new IllegalStateException("Kurushimi stub is not present.");
-        }
-
-        Set<? extends Player> remainingPlayers = new HashSet<>(players);
-        AtomicBoolean finished = new AtomicBoolean(false);
-
-        EventNode<PlayerEvent> localNode = EventNode.type(UUID.randomUUID().toString(), EventFilter.PLAYER,
-                (event, player) -> players.contains(player));
-        EVENT_NODE.addChild(localNode);
-
-        Task task = MinecraftServer.getSchedulerManager().buildTask(() -> {
-            boolean shouldRun = finished.compareAndSet(false, true);
-            if (shouldRun) {
-                failureRunnable.run();
-                EVENT_NODE.removeChild(localNode);
-            }
-        }).delay(10, ChronoUnit.SECONDS).schedule();
-
-        localNode.addListener(PlayerDisconnectEvent.class, event -> {
-            remainingPlayers.remove(event.getPlayer());
-            if (remainingPlayers.isEmpty()) {
-                task.cancel();
-                EVENT_NODE.removeChild(localNode);
-                successRunnable.run();
-            }
-        });
-
-        for (Player player : players) {
-            sendToLobby(player, () -> {
-                // failure
-                LOGGER.warn("Failed to create ticket to send player {} to lobby.", player.getUsername());
-            });
-        }
-    }
-
-    private static void sendToLobby(@NotNull Player player, @NotNull Runnable failureRunnable) {
-        var ticketFuture = KurushimiStubCollection.getFutureStub().get().queueByPlayer(QueueByPlayerRequest.newBuilder()
-                .setPlayerId(player.getUuid().toString())
-                .setGameModeId("lobby")
-                .build());
-
-        Futures.addCallback(ticketFuture, FunctionalFutureCallback.create(
-                ticket -> {
-                }, // Do nothing. We simply detect if the player gets teleported
-                throwable -> {
-                    failureRunnable.run();
-                    // todo log
-                }
-        ), ForkJoinPool.commonPool());
-    }
-
-    /**
-     * @param players         The player ids to queue for a lobby
-     * @param successRunnable A runnable to run when all players are connected to the lobby.
-     * @param failureRunnable A runnable to run when the sender gives up sending players.
-     */
-    public static void sendToLobby(Collection<? extends Player> players, Runnable successRunnable,
-                                   Runnable failureRunnable) {
-        sendToLobby(players, successRunnable, failureRunnable, 1);
     }
 }
