@@ -19,12 +19,8 @@ spec:
       env:
         - name: TRACKER_ENABLED
           value: "true"
-        - name: KURUSHIMI_REDIS_HOST
-          value: "redis-master"
         - name: KURUSHIMI_NAMESPACE
           value: "emortalmc"
-        - name: KURUSHIMI_RABBITMQ_HOST
-          value: "host.minikube.internal"
 
   serviceAccountName: matchmaker
   automountServiceAccountToken: true

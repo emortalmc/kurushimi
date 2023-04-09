@@ -76,7 +76,7 @@ type Repository interface {
 
 	CreatePendingMatch(ctx context.Context, match *model.PendingMatch) error
 	CreatePendingMatches(ctx context.Context, matches []*model.PendingMatch) error
-	UpsertPendingMatches(ctx context.Context, matches []*model.PendingMatch) error
+	UpdatePendingMatches(ctx context.Context, matches []*model.PendingMatch) error
 	DeletePendingMatches(ctx context.Context, matchIds []primitive.ObjectID) error
 	GetPendingMatchesByGameMode(ctx context.Context, gameModeId string) ([]*model.PendingMatch, error)
 	GetPendingMatchByTicketId(ctx context.Context, ticketId primitive.ObjectID) (*model.PendingMatch, error)

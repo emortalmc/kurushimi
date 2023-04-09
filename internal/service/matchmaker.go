@@ -40,10 +40,32 @@ func NewMatchmakerService(repository repository.Repository, notifier kafka.Notif
 	}
 }
 
+var (
+	queueAlreadyInQueueErr = panicIfErr(status.New(codes.AlreadyExists, "party is already in queue").
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_ALREADY_IN_QUEUE})).Err()
+
+	queueInvalidGameModeErr = panicIfErr(status.New(codes.InvalidArgument, "invalid game_mode_id").
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_INVALID_GAME_MODE})).Err()
+
+	queueGameModeDisabledErr = panicIfErr(status.New(codes.InvalidArgument, "game_mode_id is disabled").
+					WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_GAME_MODE_DISABLED})).Err()
+
+	queueInvalidMapErr = panicIfErr(status.New(codes.InvalidArgument, "invalid map_id").
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_INVALID_MAP})).Err()
+
+	queuePartyTooLargeErr = panicIfErr(status.New(codes.InvalidArgument, "party is too large").
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_PARTY_TOO_LARGE})).Err()
+
+	queuePartiesNotAllowedErr = panicIfErr(status.New(codes.InvalidArgument, "parties are not allowed").
+					WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_PARTIES_NOT_ALLOWED})).Err()
+
+	queueNoPermissionErr = panicIfErr(status.New(codes.PermissionDenied, "player does not have permission to queue").
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_NO_PERMISSION})).Err()
+)
+
 // QueueByPlayer requests a player is queued for a game.
 // NOTE: A player is always in a party and we clean up when a player changes party.
 // Therefore, we only need to check if the player's party is in a queue, not the player themselves.
-// TODO go over and put in custom error responses
 // TODO not tested
 func (m *matchmakerService) QueueByPlayer(ctx context.Context, request *pb.QueueByPlayerRequest) (*pb.QueueByPlayerResponse, error) {
 	playerId, err := uuid.Parse(request.PlayerId)
@@ -54,14 +76,18 @@ func (m *matchmakerService) QueueByPlayer(ctx context.Context, request *pb.Queue
 	// check if game_mode is valid
 	modeConfig := m.cfgController.GetCurrentConfig(request.GameModeId)
 	if modeConfig == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid game_mode_id "+request.GameModeId)
+		return nil, queueInvalidGameModeErr
+	}
+
+	if !modeConfig.Enabled {
+		return nil, queueGameModeDisabledErr
 	}
 
 	// check if map is present
 	if request.MapId != nil {
 		_, ok := modeConfig.Maps[*request.MapId]
 		if !ok {
-			return nil, status.Error(codes.InvalidArgument, "invalid map_id")
+			return nil, queueInvalidMapErr
 		}
 		// todo check if player has enough credits
 	}
@@ -85,12 +111,18 @@ func (m *matchmakerService) QueueByPlayer(ctx context.Context, request *pb.Queue
 	}
 
 	if isInQueue {
-		return nil, status.Error(codes.AlreadyExists, "party is already in queue")
+		return nil, queueAlreadyInQueueErr
 	}
 
 	// check if player is leader of party
 	if playerId.String() != party.GetLeaderId() {
-		return nil, status.Error(codes.PermissionDenied, "player is not leader of party")
+		return nil, queueNoPermissionErr
+	}
+
+	// party checks
+	partyRestrictions := modeConfig.PartyRestrictions
+	if partyRestrictions.MaxSize != nil && len(party.Members) > *modeConfig.PartyRestrictions.MaxSize {
+		return nil, queuePartyTooLargeErr
 	}
 
 	// private game checks

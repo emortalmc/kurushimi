@@ -29,7 +29,7 @@ func (m *mongoRepository) CreatePendingMatches(ctx context.Context, matches []*m
 	return err
 }
 
-func (m *mongoRepository) UpsertPendingMatches(ctx context.Context, matches []*model.PendingMatch) error {
+func (m *mongoRepository) UpdatePendingMatches(ctx context.Context, matches []*model.PendingMatch) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -37,8 +37,7 @@ func (m *mongoRepository) UpsertPendingMatches(ctx context.Context, matches []*m
 	for i, match := range matches {
 		models[i] = mongo.NewUpdateOneModel().
 			SetFilter(bson.M{"_id": match.Id}).
-			SetUpdate(bson.M{"$set": match}).
-			SetUpsert(true)
+			SetUpdate(bson.M{"$set": match})
 	}
 
 	_, err := m.pendingMatchCollection.BulkWrite(ctx, models)
@@ -86,8 +85,8 @@ func (m *mongoRepository) GetPendingMatchByTicketId(ctx context.Context, ticketI
 }
 
 func (m *mongoRepository) RemoveTicketsFromPendingMatchesById(ctx context.Context, ticketIds []primitive.ObjectID) (int64, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	//ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	//defer cancel()
 
 	filter := bson.M{"ticketIds": bson.M{"$in": ticketIds}}
 	update := bson.M{"$pull": bson.M{"ticketIds": bson.M{"$in": ticketIds}}}

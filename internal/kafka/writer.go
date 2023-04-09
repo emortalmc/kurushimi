@@ -9,6 +9,7 @@ import (
 	"kurushimi/internal/config"
 	"kurushimi/internal/repository/model"
 	"kurushimi/pkg/pb"
+	"time"
 )
 
 const writeTopic = "matchmaker"
@@ -32,11 +33,12 @@ type kafkaNotifier struct {
 
 func NewKafkaNotifier(config *config.KafkaConfig, logger *zap.SugaredLogger) Notifier {
 	w := &kafka.Writer{
-		Addr:        kafka.TCP(fmt.Sprintf("%s:%d", config.Host, config.Port)),
-		Topic:       writeTopic,
-		Balancer:    &kafka.LeastBytes{},
-		Async:       true,
-		ErrorLogger: kafka.LoggerFunc(logger.Errorw),
+		Addr:         kafka.TCP(fmt.Sprintf("%s:%d", config.Host, config.Port)),
+		Topic:        writeTopic,
+		Balancer:     &kafka.LeastBytes{},
+		Async:        true,
+		BatchTimeout: 100 * time.Millisecond,
+		ErrorLogger:  kafka.LoggerFunc(logger.Errorw),
 	}
 
 	return &kafkaNotifier{w: w}

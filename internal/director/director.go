@@ -6,10 +6,10 @@ import (
 	v1 "agones.dev/agones/pkg/client/clientset/versioned/typed/allocation/v1"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kurushimi/internal/config/allocationselector"
@@ -19,6 +19,7 @@ import (
 	"kurushimi/internal/repository/model"
 	"kurushimi/internal/utils/protoutils"
 	"kurushimi/pkg/pb"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -102,10 +103,9 @@ func (d *directorImpl) run(ctx context.Context, originalConfig *liveconfig.GameM
 	d.logger.Debugw("match function returned matches", "count", len(matches))
 	d.logger.Debugw("matches", "matches", matches)
 
-	// allocate gameservers
+	// todo allocate gameservers
 }
 
-// TODO can we do some kind of DB locking to make this more safe?
 func (d *directorImpl) processDequeues(ctx context.Context, config *liveconfig.GameModeConfig) error {
 	configId := config.Id
 
@@ -131,26 +131,22 @@ func (d *directorImpl) processDequeues(ctx context.Context, config *liveconfig.G
 		}
 	}
 
-	// TODO does this actually need to be a transaction?
-	err = d.repo.ExecuteTransaction(ctx, func(ctx mongo.SessionContext) error {
-		// Delete tickets
+	// Delete tickets
+	if len(ticketIdsToDelete) > 0 {
 		modified, err := d.repo.DeleteAllTicketsById(ctx, ticketIdsToDelete)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to delete tickets: %w", err)
 		}
 
 		if int(modified) != len(ticketIdsToDelete) {
 			d.logger.Warnw("deleted tickets count does not match expected count", "deleted", modified, "expected", len(ticketIdsToDelete))
 		}
 
-		// Delete tickets from any PendingMatches they are in
-		modified, err = d.repo.RemoveTicketsFromPendingMatchesById(ctx, ticketIdsToDelete)
+		// Delete tickets from any PendingMatches they are in.
+		// NOTE: The modified count is irrelevant as we don't know if they were in any PendingMatches
+		_, err = d.repo.RemoveTicketsFromPendingMatchesById(ctx, ticketIdsToDelete)
 		if err != nil {
-			return err
-		}
-
-		if int(modified) != len(ticketIdsToDelete) {
-			d.logger.Warnw("removed tickets from pending matches count does not match expected count", "removed", modified, "expected", len(ticketIdsToDelete))
+			return fmt.Errorf("failed to remove tickets from pending matches: %w", err)
 		}
 
 		// Send Kafka notifications
@@ -161,28 +157,32 @@ func (d *directorImpl) processDequeues(ctx context.Context, config *liveconfig.G
 				}
 			}
 		}
+	}
 
-		// Update tickets removal requests. This is what is unsafe in the db
-		modified, err = d.repo.ResetAllDequeueRequestsById(ctx, ticketIdsToUpdate)
+	if len(ticketIdsToUpdate) > 0 {
+		// Update tickets removal requests.
+		modified, err := d.repo.ResetAllDequeueRequestsById(ctx, ticketIdsToUpdate)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to reset dequeue requests: %w", err)
 		}
 
 		if int(modified) != len(ticketIdsToUpdate) {
 			d.logger.Warnw("updated tickets count does not match expected count", "updated", modified, "expected", len(ticketIdsToUpdate))
 		}
+	}
 
+	if len(playerIdsToDelete) > 0 {
 		// Delete players
-		modified, err = d.repo.DeleteAllQueuedPlayersById(ctx, playerIdsToDelete)
+		modified, err := d.repo.DeleteAllQueuedPlayersById(ctx, playerIdsToDelete)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to delete players: %w", err)
 		}
 
 		if int(modified) != len(playerIdsToDelete) {
 			d.logger.Warnw("deleted players count does not match expected count", "deleted", modified, "expected", len(playerIdsToDelete))
 		}
 		return nil
-	})
+	}
 
 	return err
 }
@@ -205,22 +205,50 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			return nil, err
 		}
 
+		// Create a pending matches map
+		pendingMatchesMap := make(map[primitive.ObjectID]*model.PendingMatch)
+		for _, pendingMatch := range pendingMatches {
+			pendingMatchesMap[pendingMatch.Id] = pendingMatch
+		}
+
+		log.Printf("pending matches: %+v", pendingMatchesMap)
+
 		// Create a ticket map
 		ticketMap := make(map[primitive.ObjectID]*model.Ticket)
 		for _, ticket := range tickets {
 			ticketMap[ticket.Id] = ticket
 		}
 
+		log.Printf("pending matches before: %v", pendingMatchesMap)
 		// Clean up existing pending matches
-		deletedPending := matchfunction2.CountdownRemoveInvalidPendingMatches(d.logger, pendingMatches, ticketMap, config)
+		deletedPending := matchfunction2.CountdownRemoveInvalidPendingMatches(pendingMatchesMap, ticketMap, config)
+		log.Printf("pending matches after: %v", pendingMatchesMap)
 
 		// Delete matches from db and notify with reason cancelled
 		if len(deletedPending) > 0 {
+			//ticketUpdates := make(map[primitive.ObjectID]bool)
+
 			for _, match := range deletedPending {
 				if err := d.notifier.PendingMatchDeleted(ctx, match, pb.PendingMatchDeletedMessage_CANCELLED); err != nil {
 					d.logger.Errorw("failed to send pending match deleted notification", "error", err)
 				}
+
+				for _, ticketId := range match.TicketIds {
+					ticket := ticketMap[ticketId]
+					if err := d.notifier.TicketUpdated(ctx, ticket); err != nil {
+						d.logger.Errorw("failed to send ticket updated notification", "error", err)
+					}
+				}
+
+				//for _, ticketId := range match.TicketIds {
+				//	ticketUpdates[ticketId] = false
+				//}
 			}
+
+			// Update the tickets in the DB
+			//if _, err := d.repo.MassUpdateTicketInPendingMatch(ctx, ticketUpdates); err != nil {
+			//	return nil, fmt.Errorf("failed to update tickets in pending match: %w", err)
+			//}
 
 			// Delete the pending matches from the db
 			deletedIds := make([]primitive.ObjectID, 0)
@@ -232,7 +260,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			}
 		}
 
-		createdPending, updatedPending, deletedPending, createdMatches, err := matchfunction2.RunCountdown(d.logger, ticketMap, pendingMatches, config)
+		createdPending, updatedPending, deletedPending, createdMatches, err := matchfunction2.RunCountdown(d.logger, ticketMap, pendingMatchesMap, config)
 		if err != nil {
 			return nil, err
 		}
@@ -248,7 +276,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 
 		// handle the pending match stuff
 		if len(updatedPending) > 0 {
-			err = d.repo.UpsertPendingMatches(ctx, updatedPending)
+			err = d.repo.UpdatePendingMatches(ctx, updatedPending)
 			if err != nil {
 				return nil, err
 			}
@@ -262,7 +290,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 
 		// handle created pending matches (just notify rn)
 		if len(createdPending) > 0 {
-			err = d.repo.UpsertPendingMatches(ctx, createdPending)
+			err = d.repo.CreatePendingMatches(ctx, createdPending)
 			if err != nil {
 				return nil, err
 			}

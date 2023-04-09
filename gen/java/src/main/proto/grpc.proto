@@ -41,13 +41,15 @@ message QueueByPlayerErrorResponse {
   enum ErrorReason {
     ALREADY_IN_QUEUE = 0;
 
-
     INVALID_GAME_MODE = 1;
     GAME_MODE_DISABLED = 2;
     INVALID_MAP = 3;
 
     PARTY_TOO_LARGE = 4;
     PARTIES_NOT_ALLOWED = 5;
+
+    // NO_PERMISSION is normally triggered if the player is not the party leader
+    NO_PERMISSION = 6;
   }
 
   ErrorReason reason = 1;

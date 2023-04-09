@@ -7,7 +7,6 @@ import (
 
 type Config struct {
 	MongoDB   *MongoDBConfig
-	RabbitMq  *RabbitMQConfig
 	Kafka     *KafkaConfig
 	Namespace string
 
@@ -20,12 +19,6 @@ type Config struct {
 
 type MongoDBConfig struct {
 	URI string
-}
-
-type RabbitMQConfig struct {
-	Host     string
-	Username string
-	Password string
 }
 
 type KafkaConfig struct {

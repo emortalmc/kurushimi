@@ -6,31 +6,36 @@ import (
 	"go.uber.org/zap"
 	"kurushimi/internal/repository/model"
 	"kurushimi/pkg/pb"
+	"log"
 	"sort"
 	"time"
 )
 
 // CountdownRemoveInvalidPendingMatches removes pending matches from the pendingMatches array that don't have enough players.
 // returns the pending matches that have been removed.
-func CountdownRemoveInvalidPendingMatches(logger *zap.SugaredLogger, pendingMatches []*model.PendingMatch,
+func CountdownRemoveInvalidPendingMatches(pendingMatches map[primitive.ObjectID]*model.PendingMatch,
 	tickets map[primitive.ObjectID]*model.Ticket, config *liveconfig.GameModeConfig) (deletedPendingMatches []*model.PendingMatch) {
 
-	for i, pendingMatch := range pendingMatches {
+	for id, pendingMatch := range pendingMatches {
 		playerCount := getPendingMatchPlayerCount(tickets, pendingMatch)
+		log.Printf("playerCount: %d/%d", playerCount, config.MinPlayers)
 		if playerCount < config.MinPlayers {
+			log.Printf("removing pending match: %s", pendingMatch.Id.Hex())
 			deletedPendingMatches = append(deletedPendingMatches, pendingMatch)
 
 			// remove pending match from pendingMatches
-			pendingMatches[i] = pendingMatches[len(pendingMatches)-1]
+			delete(pendingMatches, id)
 
 			// put tickets back into the pool
 			for _, ticketId := range pendingMatch.TicketIds {
 				if ticket, ok := tickets[ticketId]; ok {
-					ticket.UpdateInPendingMach(false)
+					ticket.UpdateInPendingMach(false) // TODO not working
 				}
 			}
 		}
 	}
+
+	log.Printf("Done with pending matches: %+v", pendingMatches)
 
 	return
 }
@@ -41,7 +46,8 @@ func CountdownRemoveInvalidPendingMatches(logger *zap.SugaredLogger, pendingMatc
 // - deletedPendingMatches: pending matches that have been deleted (either because < min players or converted to a Match)
 // - createdMatches: matches that have been created.
 // TODO what about the tickets no longer used?
-func RunCountdown(logger *zap.SugaredLogger, ticketMap map[primitive.ObjectID]*model.Ticket, pendingMatches []*model.PendingMatch, config *liveconfig.GameModeConfig) (
+func RunCountdown(logger *zap.SugaredLogger, ticketMap map[primitive.ObjectID]*model.Ticket,
+	pendingMatches map[primitive.ObjectID]*model.PendingMatch, config *liveconfig.GameModeConfig) (
 	createdPendingMatches []*model.PendingMatch, updatedPendingMatches []*model.PendingMatch,
 	deletedPendingMatches []*model.PendingMatch, createdMatches []*pb.Match, err error) {
 
@@ -79,14 +85,14 @@ func RunCountdown(logger *zap.SugaredLogger, ticketMap map[primitive.ObjectID]*m
 	}
 
 	// Go through PendingMatches and create Matches if TeleportTime has passed
-	for i, pendingMatch := range pendingMatches {
+	for id, pendingMatch := range pendingMatches {
 		if pendingMatch.TeleportTime.Before(time.Now()) {
 			match := finalisePendingMatch(ticketMap, config, pendingMatch)
 
 			createdMatches = append(createdMatches, match)
 
 			// remove from pendingMatches
-			pendingMatches[i] = pendingMatches[len(pendingMatches)-1]
+			delete(pendingMatches, id)
 			deletedPendingMatches = append(deletedPendingMatches, pendingMatch)
 
 			// TODO notify
@@ -118,7 +124,7 @@ func finalisePendingMatch(ticketMap map[primitive.ObjectID]*model.Ticket, config
 
 // fillPendingMatches
 // NOTE: The tickets map passed in should be mutable and tolerate tickets being removed when they are assigned.
-func fillPendingMatches(tickets map[primitive.ObjectID]*model.Ticket, pendingMatches []*model.PendingMatch, config *liveconfig.GameModeConfig) []*model.PendingMatch {
+func fillPendingMatches(tickets map[primitive.ObjectID]*model.Ticket, pendingMatches map[primitive.ObjectID]*model.PendingMatch, config *liveconfig.GameModeConfig) []*model.PendingMatch {
 	updatedPendingMatches := make([]*model.PendingMatch, 0)
 
 	for _, pendingMatch := range pendingMatches {
