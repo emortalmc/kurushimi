@@ -1,5 +1,5 @@
 syntax = "proto3";
-package dev.emortal.kurushimi.grpc;
+package emortal.kurushimi.grpc;
 
 option java_package = "dev.emortal.api.kurushimi";
 option java_outer_classname = "KurushimiFrontendProto";
@@ -10,6 +10,13 @@ import "models.proto";
 
 service Matchmaker {
   rpc QueueByPlayer(QueueByPlayerRequest) returns (QueueByPlayerResponse) {}
+
+  // QueueInitialLobbyByPlayer is used to queue a player for a lobby match before they've technically joined the server.
+  // This is used by the proxy as the player doesn't yet have a party.
+  // Note this method does much less validation and error handling than QueueByPlayer due to its intended use case.
+  // This method will create a ticket with auto_teleport as false and default to the 'lobby' game mode.
+  rpc QueueInitialLobbyByPlayer(QueueInitialLobbyByPlayerRequest) returns (QueueInitialLobbyByPlayerResponse) {}
+
   rpc DequeueByPlayer(DequeueByPlayerRequest) returns (DequeueByPlayerResponse) {}
   rpc ChangePlayerMapVote(ChangePlayerMapVoteRequest) returns (ChangePlayerMapVoteResponse) {}
   rpc GetPlayerQueueInfo(GetPlayerQueueInfoRequest) returns (GetPlayerQueueInfoResponse) {}
@@ -54,6 +61,13 @@ message QueueByPlayerErrorResponse {
 
   ErrorReason reason = 1;
 }
+
+message QueueInitialLobbyByPlayerRequest {
+  // player_id of type UUID
+  string player_id = 1;
+}
+
+message QueueInitialLobbyByPlayerResponse {}
 
 message DequeueByPlayerRequest {
   // player_id of type UUID

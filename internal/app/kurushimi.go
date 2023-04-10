@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 	"kurushimi/internal/config"
 	"kurushimi/internal/director"
 	"kurushimi/internal/kafka"
@@ -64,6 +65,10 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 			return zapcore.ErrorLevel
 		}
 	}))))
+
+	if cfg.Development {
+		reflection.Register(s)
+	}
 
 	pConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.ServiceHost, cfg.PartyService.ServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

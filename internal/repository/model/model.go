@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"kurushimi/internal/utils"
 	"kurushimi/pkg/pb"
 	"time"
 )
@@ -33,7 +34,9 @@ type Ticket struct {
 	InPendingMatch bool `bson:"inPendingMatch"`
 
 	// party fields are only present if the ticket is for a party
-	PartyId       primitive.ObjectID    `bson:"partyId"`
+	// YES, this is still possible. It's mainly used for when a player is requesting an initial lobby,
+	// so they aren't technically in a party yet.
+	PartyId       *primitive.ObjectID   `bson:"partyId, omitempty"`
 	PartySettings *ReducedPartySettings `bson:"partySettings"`
 
 	PlayerIds  []uuid.UUID `bson:"playerIds"`
@@ -44,7 +47,7 @@ type Ticket struct {
 	InternalUpdates *TicketInternalUpdates `bson:"-"`
 }
 
-func NewTicket(partyId primitive.ObjectID, partySettings *ReducedPartySettings, playerIds []uuid.UUID,
+func NewTicket(partyId *primitive.ObjectID, partySettings *ReducedPartySettings, playerIds []uuid.UUID,
 	gameModeId string, autoTeleport bool) *Ticket {
 
 	return &Ticket{
@@ -65,9 +68,14 @@ func (t *Ticket) ToProto() *pb.Ticket {
 		pbPlayerIds[i] = playerId.String()
 	}
 
+	var partyId *string
+	if t.PartyId != nil {
+		partyId = utils.PointerOf(t.PartyId.Hex())
+	}
+
 	return &pb.Ticket{
 		Id:             t.Id.Hex(),
-		PartyId:        t.PartyId.Hex(),
+		PartyId:        partyId,
 		CreatedAt:      timestamppb.New(t.Id.Timestamp()),
 		PlayerIds:      pbPlayerIds,
 		GameModeId:     t.GameModeId,

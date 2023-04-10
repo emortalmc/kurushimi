@@ -23,6 +23,11 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MatchmakerClient interface {
 	QueueByPlayer(ctx context.Context, in *QueueByPlayerRequest, opts ...grpc.CallOption) (*QueueByPlayerResponse, error)
+	// QueueInitialLobbyByPlayer is used to queue a player for a lobby match before they've technically joined the server.
+	// This is used by the proxy as the player doesn't yet have a party.
+	// Note this method does much less validation and error handling than QueueByPlayer due to its intended use case.
+	// This method will create a ticket with auto_teleport as false and default to the 'lobby' game mode.
+	QueueInitialLobbyByPlayer(ctx context.Context, in *QueueInitialLobbyByPlayerRequest, opts ...grpc.CallOption) (*QueueInitialLobbyByPlayerResponse, error)
 	DequeueByPlayer(ctx context.Context, in *DequeueByPlayerRequest, opts ...grpc.CallOption) (*DequeueByPlayerResponse, error)
 	ChangePlayerMapVote(ctx context.Context, in *ChangePlayerMapVoteRequest, opts ...grpc.CallOption) (*ChangePlayerMapVoteResponse, error)
 	GetPlayerQueueInfo(ctx context.Context, in *GetPlayerQueueInfoRequest, opts ...grpc.CallOption) (*GetPlayerQueueInfoResponse, error)
@@ -38,7 +43,16 @@ func NewMatchmakerClient(cc grpc.ClientConnInterface) MatchmakerClient {
 
 func (c *matchmakerClient) QueueByPlayer(ctx context.Context, in *QueueByPlayerRequest, opts ...grpc.CallOption) (*QueueByPlayerResponse, error) {
 	out := new(QueueByPlayerResponse)
-	err := c.cc.Invoke(ctx, "/dev.emortal.kurushimi.grpc.Matchmaker/QueueByPlayer", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/emortal.kurushimi.grpc.Matchmaker/QueueByPlayer", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *matchmakerClient) QueueInitialLobbyByPlayer(ctx context.Context, in *QueueInitialLobbyByPlayerRequest, opts ...grpc.CallOption) (*QueueInitialLobbyByPlayerResponse, error) {
+	out := new(QueueInitialLobbyByPlayerResponse)
+	err := c.cc.Invoke(ctx, "/emortal.kurushimi.grpc.Matchmaker/QueueInitialLobbyByPlayer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +61,7 @@ func (c *matchmakerClient) QueueByPlayer(ctx context.Context, in *QueueByPlayerR
 
 func (c *matchmakerClient) DequeueByPlayer(ctx context.Context, in *DequeueByPlayerRequest, opts ...grpc.CallOption) (*DequeueByPlayerResponse, error) {
 	out := new(DequeueByPlayerResponse)
-	err := c.cc.Invoke(ctx, "/dev.emortal.kurushimi.grpc.Matchmaker/DequeueByPlayer", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/emortal.kurushimi.grpc.Matchmaker/DequeueByPlayer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +70,7 @@ func (c *matchmakerClient) DequeueByPlayer(ctx context.Context, in *DequeueByPla
 
 func (c *matchmakerClient) ChangePlayerMapVote(ctx context.Context, in *ChangePlayerMapVoteRequest, opts ...grpc.CallOption) (*ChangePlayerMapVoteResponse, error) {
 	out := new(ChangePlayerMapVoteResponse)
-	err := c.cc.Invoke(ctx, "/dev.emortal.kurushimi.grpc.Matchmaker/ChangePlayerMapVote", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/emortal.kurushimi.grpc.Matchmaker/ChangePlayerMapVote", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +79,7 @@ func (c *matchmakerClient) ChangePlayerMapVote(ctx context.Context, in *ChangePl
 
 func (c *matchmakerClient) GetPlayerQueueInfo(ctx context.Context, in *GetPlayerQueueInfoRequest, opts ...grpc.CallOption) (*GetPlayerQueueInfoResponse, error) {
 	out := new(GetPlayerQueueInfoResponse)
-	err := c.cc.Invoke(ctx, "/dev.emortal.kurushimi.grpc.Matchmaker/GetPlayerQueueInfo", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/emortal.kurushimi.grpc.Matchmaker/GetPlayerQueueInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +91,11 @@ func (c *matchmakerClient) GetPlayerQueueInfo(ctx context.Context, in *GetPlayer
 // for forward compatibility
 type MatchmakerServer interface {
 	QueueByPlayer(context.Context, *QueueByPlayerRequest) (*QueueByPlayerResponse, error)
+	// QueueInitialLobbyByPlayer is used to queue a player for a lobby match before they've technically joined the server.
+	// This is used by the proxy as the player doesn't yet have a party.
+	// Note this method does much less validation and error handling than QueueByPlayer due to its intended use case.
+	// This method will create a ticket with auto_teleport as false and default to the 'lobby' game mode.
+	QueueInitialLobbyByPlayer(context.Context, *QueueInitialLobbyByPlayerRequest) (*QueueInitialLobbyByPlayerResponse, error)
 	DequeueByPlayer(context.Context, *DequeueByPlayerRequest) (*DequeueByPlayerResponse, error)
 	ChangePlayerMapVote(context.Context, *ChangePlayerMapVoteRequest) (*ChangePlayerMapVoteResponse, error)
 	GetPlayerQueueInfo(context.Context, *GetPlayerQueueInfoRequest) (*GetPlayerQueueInfoResponse, error)
@@ -89,6 +108,9 @@ type UnimplementedMatchmakerServer struct {
 
 func (UnimplementedMatchmakerServer) QueueByPlayer(context.Context, *QueueByPlayerRequest) (*QueueByPlayerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueueByPlayer not implemented")
+}
+func (UnimplementedMatchmakerServer) QueueInitialLobbyByPlayer(context.Context, *QueueInitialLobbyByPlayerRequest) (*QueueInitialLobbyByPlayerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueueInitialLobbyByPlayer not implemented")
 }
 func (UnimplementedMatchmakerServer) DequeueByPlayer(context.Context, *DequeueByPlayerRequest) (*DequeueByPlayerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DequeueByPlayer not implemented")
@@ -122,10 +144,28 @@ func _Matchmaker_QueueByPlayer_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dev.emortal.kurushimi.grpc.Matchmaker/QueueByPlayer",
+		FullMethod: "/emortal.kurushimi.grpc.Matchmaker/QueueByPlayer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MatchmakerServer).QueueByPlayer(ctx, req.(*QueueByPlayerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Matchmaker_QueueInitialLobbyByPlayer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueueInitialLobbyByPlayerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MatchmakerServer).QueueInitialLobbyByPlayer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/emortal.kurushimi.grpc.Matchmaker/QueueInitialLobbyByPlayer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MatchmakerServer).QueueInitialLobbyByPlayer(ctx, req.(*QueueInitialLobbyByPlayerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -140,7 +180,7 @@ func _Matchmaker_DequeueByPlayer_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dev.emortal.kurushimi.grpc.Matchmaker/DequeueByPlayer",
+		FullMethod: "/emortal.kurushimi.grpc.Matchmaker/DequeueByPlayer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MatchmakerServer).DequeueByPlayer(ctx, req.(*DequeueByPlayerRequest))
@@ -158,7 +198,7 @@ func _Matchmaker_ChangePlayerMapVote_Handler(srv interface{}, ctx context.Contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dev.emortal.kurushimi.grpc.Matchmaker/ChangePlayerMapVote",
+		FullMethod: "/emortal.kurushimi.grpc.Matchmaker/ChangePlayerMapVote",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MatchmakerServer).ChangePlayerMapVote(ctx, req.(*ChangePlayerMapVoteRequest))
@@ -176,7 +216,7 @@ func _Matchmaker_GetPlayerQueueInfo_Handler(srv interface{}, ctx context.Context
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/dev.emortal.kurushimi.grpc.Matchmaker/GetPlayerQueueInfo",
+		FullMethod: "/emortal.kurushimi.grpc.Matchmaker/GetPlayerQueueInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MatchmakerServer).GetPlayerQueueInfo(ctx, req.(*GetPlayerQueueInfoRequest))
@@ -188,12 +228,16 @@ func _Matchmaker_GetPlayerQueueInfo_Handler(srv interface{}, ctx context.Context
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Matchmaker_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "dev.emortal.kurushimi.grpc.Matchmaker",
+	ServiceName: "emortal.kurushimi.grpc.Matchmaker",
 	HandlerType: (*MatchmakerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "QueueByPlayer",
 			Handler:    _Matchmaker_QueueByPlayer_Handler,
+		},
+		{
+			MethodName: "QueueInitialLobbyByPlayer",
+			Handler:    _Matchmaker_QueueInitialLobbyByPlayer_Handler,
 		},
 		{
 			MethodName: "DequeueByPlayer",

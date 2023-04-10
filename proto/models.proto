@@ -1,5 +1,5 @@
 syntax = "proto3";
-package dev.emortal.kurushimi.model;
+package emortal.kurushimi.model;
 
 option java_package = "dev.emortal.api.kurushimi";
 option java_multiple_files = true;
@@ -20,7 +20,9 @@ message Ticket {
   string id = 1;
 
   // party_id of type ObjectID (mongo id)
-  string party_id = 2;
+  // Whilst technically optional, it is very rare. The party_id is only null on join lobby selection
+  // as the player does not yet have a party.
+  optional string party_id = 2;
 
   google.protobuf.Timestamp created_at = 3;
 

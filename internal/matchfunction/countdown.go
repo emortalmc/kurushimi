@@ -6,7 +6,6 @@ import (
 	"go.uber.org/zap"
 	"kurushimi/internal/repository/model"
 	"kurushimi/pkg/pb"
-	"log"
 	"sort"
 	"time"
 )
@@ -18,9 +17,7 @@ func CountdownRemoveInvalidPendingMatches(pendingMatches map[primitive.ObjectID]
 
 	for id, pendingMatch := range pendingMatches {
 		playerCount := getPendingMatchPlayerCount(tickets, pendingMatch)
-		log.Printf("playerCount: %d/%d", playerCount, config.MinPlayers)
 		if playerCount < config.MinPlayers {
-			log.Printf("removing pending match: %s", pendingMatch.Id.Hex())
 			deletedPendingMatches = append(deletedPendingMatches, pendingMatch)
 
 			// remove pending match from pendingMatches
@@ -34,8 +31,6 @@ func CountdownRemoveInvalidPendingMatches(pendingMatches map[primitive.ObjectID]
 			}
 		}
 	}
-
-	log.Printf("Done with pending matches: %+v", pendingMatches)
 
 	return
 }

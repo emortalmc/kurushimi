@@ -19,7 +19,6 @@ import (
 	"kurushimi/internal/repository/model"
 	"kurushimi/internal/utils/protoutils"
 	"kurushimi/pkg/pb"
-	"log"
 	"sort"
 	"sync"
 	"time"
@@ -211,18 +210,14 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			pendingMatchesMap[pendingMatch.Id] = pendingMatch
 		}
 
-		log.Printf("pending matches: %+v", pendingMatchesMap)
-
 		// Create a ticket map
 		ticketMap := make(map[primitive.ObjectID]*model.Ticket)
 		for _, ticket := range tickets {
 			ticketMap[ticket.Id] = ticket
 		}
 
-		log.Printf("pending matches before: %v", pendingMatchesMap)
 		// Clean up existing pending matches
 		deletedPending := matchfunction2.CountdownRemoveInvalidPendingMatches(pendingMatchesMap, ticketMap, config)
-		log.Printf("pending matches after: %v", pendingMatchesMap)
 
 		// Delete matches from db and notify with reason cancelled
 		if len(deletedPending) > 0 {
@@ -365,7 +360,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 
 	// Create teams for Matches
 	teamInfo := config.TeamInfo
-	if teamInfo.TeamCount > 0 {
+	if teamInfo != nil && teamInfo.TeamCount > 0 {
 		for _, match := range matches {
 			teams := createTeams(match.Tickets, teamInfo.TeamCount, teamInfo.TeamSize)
 			match.Teams = teams
