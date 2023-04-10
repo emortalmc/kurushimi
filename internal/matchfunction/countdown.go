@@ -63,8 +63,18 @@ func RunCountdown(logger *zap.SugaredLogger, ticketMap map[primitive.ObjectID]*m
 	filledPendingMatches := fillPendingMatches(remainingTicketMap, pendingMatches, config)
 	updatedPendingMatches = append(updatedPendingMatches, filledPendingMatches...)
 
+	enoughPlayers := false
+	playerCount := 0
+	for _, ticket := range remainingTicketMap {
+		playerCount += len(ticket.PlayerIds)
+		if playerCount >= config.MinPlayers {
+			enoughPlayers = true
+			break
+		}
+	}
+
 	// create new pending matches if there are still tickets left
-	if len(remainingTicketMap) >= config.MinPlayers {
+	if enoughPlayers {
 		logger.Debugw("RunCountdown creating new pending matches", "remainingTicketMap", len(remainingTicketMap))
 		remainingTickets := make([]*model.Ticket, len(remainingTicketMap))
 		i := 0
@@ -111,7 +121,6 @@ func finalisePendingMatch(ticketMap map[primitive.ObjectID]*model.Ticket, config
 		Tickets:    pbTickets,
 		MapId:      nil, // Done by the director
 		Assignment: nil, // Done by the director
-		Teams:      nil, // Done by the director
 	}
 
 	return match

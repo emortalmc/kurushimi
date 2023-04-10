@@ -19,7 +19,6 @@ import (
 	"kurushimi/internal/repository/model"
 	"kurushimi/internal/utils/protoutils"
 	"kurushimi/pkg/pb"
-	"sort"
 	"sync"
 	"time"
 )
@@ -358,24 +357,16 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 		}
 	}
 
-	// Create teams for Matches
-	teamInfo := config.TeamInfo
-	if teamInfo != nil && teamInfo.TeamCount > 0 {
-		for _, match := range matches {
-			teams := createTeams(match.Tickets, teamInfo.TeamCount, teamInfo.TeamSize)
-			match.Teams = teams
-		}
-	}
-
 	// Assign a server for each match
 	errorMap := d.allocateServers(ctx, config, matches)
+	if len(errorMap) > 0 {
+		d.logger.Errorw("failed to allocate servers", "errorMap", errorMap)
+	}
 	// TODO let's use the errorMap to do some retry logic and not delete the Tickets and QueuedPlayers
-
-	// TODO remove this
-	_ = errorMap
 
 	// Notify of match creation
 	for _, match := range matches {
+		d.logger.Infow("match created", "match", match.Id, "assignment", match.Assignment)
 		err = d.notifier.MatchCreated(ctx, match)
 		if err != nil {
 			d.logger.Errorw("error notifying of match creation", "match", match.Id, "error", err)
@@ -473,73 +464,6 @@ func (d *directorImpl) calculateMaps(ctx context.Context, matches []*pb.Match) e
 		}
 
 		match.MapId = mostVotedMapId
-	}
-
-	return nil
-}
-
-// TODO this needs to be redone.
-// We should favour filling all teams or make that behaviour configurable (e.g. a min teams or prefer spread setting)
-func createTeams(tickets []*pb.Ticket, teamCount int, maxTeamSize int) []*pb.Match_MatchTeam {
-	if teamCount == 0 {
-		return nil
-	}
-	if teamCount == 1 {
-		// Make one team with all players
-		playerIds := make([]string, 0)
-		for _, ticket := range tickets {
-			playerIds = append(playerIds, ticket.PlayerIds...)
-		}
-		return []*pb.Match_MatchTeam{{PlayerIds: playerIds}}
-	}
-
-	if teamCount > 0 {
-		// A party may be over the max team size, so we need to split them up into groups of <= max team size
-		groups := make([][]string, 0)
-		for _, ticket := range tickets {
-			playerIds := make([]string, 0)
-			copy(playerIds, ticket.PlayerIds)
-
-			for len(playerIds) > 0 {
-				// Split the party into groups of size <= max team size
-				group := make([]string, 0)
-				for len(playerIds) > 0 && len(group) < maxTeamSize {
-					group = append(group, playerIds[0])
-					playerIds = playerIds[1:]
-				}
-			}
-		}
-
-		// Sort groups from largest to smallest.
-		// This can help improve matchmaking, although it's not a fix.
-		sort.Slice(groups, func(i, j int) bool {
-			return len(groups[i]) > len(groups[j])
-		})
-
-		teams := make([]*pb.Match_MatchTeam, 0)
-		for _, group := range groups {
-			groupSize := len(group)
-			foundTeam := false
-			for _, team := range teams {
-				teamSpace := maxTeamSize - len(team.PlayerIds)
-				if teamSpace >= groupSize {
-					team.PlayerIds = append(team.PlayerIds, group...)
-					foundTeam = true
-					break
-				}
-			}
-
-			if !foundTeam {
-				// We can create a new team :)
-				if len(teams) < teamCount {
-					teams = append(teams, &pb.Match_MatchTeam{PlayerIds: group})
-				} else {
-					// Split up thr group
-					// NOTE: This is a naive approach for now. We know there is space for every player, but there may not be
-					// space in teams for this combination of players in groups. Therefore, we're going to split the group up
-				}
-			}
-		}
 	}
 
 	return nil

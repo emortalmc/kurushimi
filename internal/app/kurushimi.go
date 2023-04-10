@@ -50,7 +50,7 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 
 	err = repo.HealthCheck(ctx, 5*time.Second)
 	if err != nil {
-		logger.Fatalw("failed to connect to mongo", err)
+		logger.Fatalw("failed to initiate mongodb", err)
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))

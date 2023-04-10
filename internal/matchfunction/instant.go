@@ -17,7 +17,6 @@ func RunInstant(tickets []*model.Ticket, config *liveconfig.GameModeConfig) (cre
 		Tickets:    make([]*pb.Ticket, 0),
 		MapId:      nil, // Done by the director
 		Assignment: nil, // Done by the director
-		Teams:      nil, // Done by the director
 	}
 
 	for _, ticket := range tickets {
@@ -35,7 +34,6 @@ func RunInstant(tickets []*model.Ticket, config *liveconfig.GameModeConfig) (cre
 				Tickets:    make([]*pb.Ticket, 0),
 				MapId:      nil, // Done by the director
 				Assignment: nil, // Done by the director
-				Teams:      nil, // Done by the director
 			}
 		}
 

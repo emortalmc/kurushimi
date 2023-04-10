@@ -50,24 +50,17 @@ message Ticket {
 }
 
 message Match {
-  message MatchTeam {
-    repeated string player_ids = 1;
-  }
-
   string id = 1;
   string game_mode_id = 2;
 
   // map_id selected by the matchmaker based on the game mode config
   // Only present if the game mode has a map pool.
+  // Clients should still always account for it being null for testing purposes (random map when in game dev mode)
   optional string map_id = 3;
 
   // tickets is a source of truth for all the grouped players in the match.
   repeated Ticket tickets = 4;
   optional Assignment assignment = 5;
-
-  // teams is only present if a TeamInfo was provided
-  // in the gamemode's config.
-  repeated MatchTeam teams = 6;
 }
 
 message Assignment {

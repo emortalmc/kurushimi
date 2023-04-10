@@ -14,6 +14,7 @@ import (
 	"kurushimi/internal/repository"
 	"kurushimi/internal/repository/model"
 	"kurushimi/pkg/pb"
+	"log"
 )
 
 type matchmakerService struct {
@@ -144,9 +145,11 @@ func (m *matchmakerService) QueueByPlayer(ctx context.Context, request *pb.Queue
 	}
 
 	// Get the party settings
-	settingsRes, err := m.partySettingsService.GetPartySettings(ctx, &pbparty.GetPartySettingsRequest{Id: &pbparty.GetPartySettingsRequest_PlayerId{PlayerId: party.LeaderId}})
+	settingsRes, err := m.partySettingsService.GetPartySettings(ctx,
+		&pbparty.GetPartySettingsRequest{Id: &pbparty.GetPartySettingsRequest_PlayerId{PlayerId: party.LeaderId}},
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get party settings (leaderId: %s): %w", party.LeaderId, err)
 	}
 
 	settings := settingsRes.GetSettings()
@@ -313,7 +316,19 @@ func (m *matchmakerService) ChangePlayerMapVote(ctx context.Context, request *pb
 		return nil, status.Error(codes.InvalidArgument, "invalid player_id")
 	}
 
-	ok := m.isMapIdValid(request.MapId)
+	log.Printf("ChangePlayerMapVote: %s %s", playerId, request.MapId)
+	log.Printf("Maps: %v", m.cfgController.GetCurrentConfig("lobby").Maps)
+
+	ticket, err := m.repo.GetTicketByPlayerId(ctx, playerId)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, changeMapNotInQueueErr
+		}
+
+		return nil, err
+	}
+
+	ok := m.isMapIdValid(ticket.GameModeId, request.MapId)
 	if !ok {
 		return nil, changeMapInvalidMapErr
 	}
@@ -371,9 +386,19 @@ func (m *matchmakerService) GetPlayerQueueInfo(ctx context.Context, request *pb.
 	}, nil
 }
 
-func (m *matchmakerService) isMapIdValid(mapId string) bool {
-	cfg := m.cfgController.GetCurrentConfig(mapId)
-	return cfg != nil
+func (m *matchmakerService) isMapIdValid(modeId string, mapId string) bool {
+	cfg := m.cfgController.GetCurrentConfig(modeId)
+	if cfg == nil {
+		return false
+	}
+
+	for _, mapCfg := range cfg.Maps {
+		if mapCfg.Id == mapId {
+			return true
+		}
+	}
+
+	return false
 }
 
 func panicIfErr[T any](thing T, err error) T {

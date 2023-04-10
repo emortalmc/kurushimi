@@ -4,6 +4,7 @@ import (
 	"agones.dev/agones/pkg/apis"
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
+	"encoding/base64"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"google.golang.org/protobuf/proto"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +65,7 @@ func CreatePlayerBasedSelector(cfg *liveconfig.GameModeConfig, match *pb.Match, 
 						},
 					},
 					Players: &allocatorv1.PlayerSelector{
-						MinAvailable: playerCount, // will need to change for party support
+						MinAvailable: playerCount,
 						MaxAvailable: math.MaxInt,
 					},
 					GameServerState: &AllocatedState,
@@ -90,7 +91,9 @@ func createPatchedAnnotations(match *pb.Match) map[string]string {
 		panic(err)
 	}
 
+	stringData := base64.StdEncoding.EncodeToString(allocationDataBytes)
+
 	return map[string]string{
-		"emortal.dev/allocation-data": string(allocationDataBytes),
+		"emortal.dev/allocation-data": stringData,
 	}
 }
