@@ -76,6 +76,10 @@ message PendingMatch {
   // ticket_ids of type ObjectID (mongo id)
   repeated string ticket_ids = 3;
   google.protobuf.Timestamp teleport_time = 4;
+
+  // player_count is the number of players in the tickets of the PendingMatch.
+  // This is updated each time the matchfunction is run.
+  int64 player_count = 5;
 }
 
 message AllocationData {

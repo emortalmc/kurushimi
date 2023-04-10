@@ -126,7 +126,8 @@ type PendingMatch struct {
 
 	GameModeId string `bson:"gameModeId"`
 
-	TicketIds []primitive.ObjectID `bson:"ticketIds"`
+	TicketIds   []primitive.ObjectID `bson:"ticketIds"`
+	PlayerCount int                  `bson:"playerCount"`
 
 	TeleportTime *time.Time `bson:"teleportTime"`
 }
@@ -142,6 +143,7 @@ func (m *PendingMatch) ToProto() *pb.PendingMatch {
 		GameModeId:   m.GameModeId,
 		TicketIds:    pbTicketIds,
 		TeleportTime: timestamppb.New(*m.TeleportTime),
+		PlayerCount:  int64(m.PlayerCount),
 	}
 }
 

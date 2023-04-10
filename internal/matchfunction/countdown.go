@@ -12,6 +12,7 @@ import (
 
 // CountdownRemoveInvalidPendingMatches removes pending matches from the pendingMatches array that don't have enough players.
 // returns the pending matches that have been removed.
+// This method also updates the PlayerCount field of the pending matches that are still valid.
 func CountdownRemoveInvalidPendingMatches(pendingMatches map[primitive.ObjectID]*model.PendingMatch,
 	tickets map[primitive.ObjectID]*model.Ticket, config *liveconfig.GameModeConfig) (deletedPendingMatches []*model.PendingMatch) {
 
@@ -29,6 +30,8 @@ func CountdownRemoveInvalidPendingMatches(pendingMatches map[primitive.ObjectID]
 					ticket.UpdateInPendingMach(false) // TODO not working
 				}
 			}
+		} else {
+			pendingMatch.PlayerCount = playerCount
 		}
 	}
 
@@ -150,6 +153,7 @@ func fillPendingMatches(tickets map[primitive.ObjectID]*model.Ticket, pendingMat
 		}
 
 		if updated {
+			pendingMatch.PlayerCount = getPendingMatchPlayerCount(tickets, pendingMatch)
 			updatedPendingMatches = append(updatedPendingMatches, pendingMatch)
 		}
 	}
@@ -187,6 +191,7 @@ func createPendingMatches(tickets []*model.Ticket, config *liveconfig.GameModeCo
 		for _, ticket := range tickets {
 			if len(ticket.PlayerIds) <= pendingMatchSpace {
 				currentPendingMatch.TicketIds = append(currentPendingMatch.TicketIds, ticket.Id)
+				currentPendingMatch.PlayerCount += len(ticket.PlayerIds)
 				ticket.UpdateInPendingMach(true)
 
 				remainingPlayerCount -= len(ticket.PlayerIds)
