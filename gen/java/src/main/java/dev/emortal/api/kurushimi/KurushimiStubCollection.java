@@ -11,7 +11,7 @@ import java.util.Optional;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class KurushimiStubCollection {
     private static final Logger LOGGER = LoggerFactory.getLogger(KurushimiStubCollection.class);
-    private static final boolean DEVELOPMENT = System.getenv("HOSTNAME") == null;
+    private static final boolean DEVELOPMENT = System.getenv("KUBERNETES_SERVICE_HOST") == null;
 
     private static final @NotNull Optional<MatchmakerGrpc.MatchmakerFutureStub> futureStub;
     private static final @NotNull Optional<MatchmakerGrpc.MatchmakerStub> stub;
