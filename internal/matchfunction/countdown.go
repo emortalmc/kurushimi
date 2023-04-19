@@ -145,7 +145,7 @@ func fillPendingMatches(tickets map[primitive.ObjectID]*model.Ticket, pendingMat
 				ticket.UpdateInPendingMach(true)
 
 				// remove ticket from the tickets map
-				tickets[ticketId] = nil
+				delete(tickets, ticketId)
 
 				remainingSpace -= len(ticket.PlayerIds)
 				updated = true
