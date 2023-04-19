@@ -59,7 +59,7 @@ func (c *consumer) consume() {
 			}
 		}
 		if protoType == "" {
-			log.Printf("no proto type found in message headers")
+			c.logger.Warnw("no proto type found in message headers")
 			continue
 		}
 
@@ -67,13 +67,17 @@ func (c *consumer) consume() {
 		case string((&party.PartyDisbandedMessage{}).ProtoReflect().Descriptor().FullName()):
 			var msg *party.PartyDisbandedMessage
 			if err := proto.Unmarshal(m.Value, msg); err != nil {
-				log.Printf("failed to unmarshal message: %s", err)
+				c.logger.Errorw("failed to unmarshal message", err)
 				continue
 			}
 
 			log.Printf("received message: %s", msg.String())
 		case string((&party.PartyPlayerJoinedMessage{}).ProtoReflect().Descriptor().FullName()):
-
+			var msg *party.PartyPlayerJoinedMessage
+			if err := proto.Unmarshal(m.Value, msg); err != nil {
+				c.logger.Errorw("failed to unmarshal message", err)
+				continue
+			}
 		case string((&party.PartyPlayerLeftMessage{}).ProtoReflect().Descriptor().FullName()):
 
 		}
@@ -95,6 +99,7 @@ func (c *consumer) handlePartyDisband(msg *party.PartyDisbandedMessage) {
 	}
 }
 
+// TODO we don't account for if a ticket size increases and there isn't enough space in their existing PendingMatch
 func (c *consumer) handlePartyPlayerJoined(msg *party.PartyPlayerJoinedMessage) {
 	// TODO
 }

@@ -27,7 +27,9 @@ public class KurushimiMinestomUtils {
 
     static {
         MinecraftServer.getGlobalEventHandler().addChild(EVENT_NODE);
-    }/**
+    }
+
+    /**
      * Note: The failure runnable is only run at the end of the time if players are not sent.
      * If there are other errors, they may only affect one player and resolve with retries.
      *
@@ -40,9 +42,9 @@ public class KurushimiMinestomUtils {
     // todo store player tickets so if we assume a cancellation, we delete the ticket
     public static void sendToLobby(Collection<? extends Player> players, Runnable successRunnable,
                                    Runnable failureRunnable, int retries) {
-        if (KurushimiStubCollection.getStub().isEmpty()) {
+
+        if (KurushimiStubCollection.getFutureStub().isEmpty())
             throw new IllegalStateException("Kurushimi stub is not present.");
-        }
 
         Set<? extends Player> remainingPlayers = new HashSet<>(players);
         AtomicBoolean finished = new AtomicBoolean(false);
