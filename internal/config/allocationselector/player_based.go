@@ -23,6 +23,7 @@ func CreatePlayerBasedSelector(cfg *liveconfig.GameModeConfig, match *pb.Match, 
 						MatchLabels: map[string]string{
 							"agones.dev/fleet": fleetName,
 						},
+						MatchExpressions: []v1.LabelSelectorRequirement{notOudatedExpression},
 					},
 					Players: &allocatorv1.PlayerSelector{
 						MinAvailable: playerCount,
@@ -30,12 +31,7 @@ func CreatePlayerBasedSelector(cfg *liveconfig.GameModeConfig, match *pb.Match, 
 					},
 					GameServerState: &AllocatedState,
 				},
-				{
-					LabelSelector: v1.LabelSelector{
-						MatchLabels: map[string]string{"agones.dev/fleet": fleetName},
-					},
-					GameServerState: &ReadyState,
-				},
+				createReadySelector(fleetName),
 			},
 			MetaPatch: allocatorv1.MetaPatch{
 				Annotations: createPatchedAnnotations(match),

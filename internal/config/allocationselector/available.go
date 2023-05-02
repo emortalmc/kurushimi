@@ -24,12 +24,7 @@ func CreateAvailableSelector(cfg *liveconfig.GameModeConfig, match *pb.Match) *a
 					},
 					GameServerState: &AllocatedState,
 				},
-				{
-					LabelSelector: v1.LabelSelector{
-						MatchLabels: map[string]string{"agones.dev/fleet": fleetName},
-					},
-					GameServerState: &ReadyState,
-				},
+				createReadySelector(fleetName),
 			},
 			MetaPatch: allocatorv1.MetaPatch{
 				Annotations: createPatchedAnnotations(match),
