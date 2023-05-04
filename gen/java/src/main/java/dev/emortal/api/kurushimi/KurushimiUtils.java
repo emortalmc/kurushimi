@@ -18,14 +18,14 @@ public class KurushimiUtils {
     public static void registerParserRegistry() {
         LOGGER.info("Registering Kurushimi parser registry");
 
-        ProtoParserRegistry.registerKafka(TicketCreatedMessage.getDefaultInstance(), TicketCreatedMessage::parseFrom, "matchmaker");
-        ProtoParserRegistry.registerKafka(TicketUpdatedMessage.getDefaultInstance(), TicketUpdatedMessage::parseFrom, "matchmaker");
-        ProtoParserRegistry.registerKafka(TicketDeletedMessage.getDefaultInstance(), TicketDeletedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(TicketCreatedMessage.getDefaultInstance(), TicketCreatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(TicketUpdatedMessage.getDefaultInstance(), TicketUpdatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(TicketDeletedMessage.getDefaultInstance(), TicketDeletedMessage::parseFrom, "matchmaker");
 
-        ProtoParserRegistry.registerKafka(PendingMatchCreatedMessage.getDefaultInstance(), PendingMatchCreatedMessage::parseFrom, "matchmaker");
-        ProtoParserRegistry.registerKafka(PendingMatchUpdatedMessage.getDefaultInstance(), PendingMatchUpdatedMessage::parseFrom, "matchmaker");
-        ProtoParserRegistry.registerKafka(PendingMatchDeletedMessage.getDefaultInstance(), PendingMatchDeletedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(PendingMatchCreatedMessage.getDefaultInstance(), PendingMatchCreatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(PendingMatchUpdatedMessage.getDefaultInstance(), PendingMatchUpdatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(PendingMatchDeletedMessage.getDefaultInstance(), PendingMatchDeletedMessage::parseFrom, "matchmaker");
 
-        ProtoParserRegistry.registerKafka(MatchCreatedMessage.getDefaultInstance(), MatchCreatedMessage::parseFrom, "matchmaker");
+        ProtoParserRegistry.register(MatchCreatedMessage.getDefaultInstance(), MatchCreatedMessage::parseFrom, "matchmaker");
     }
 }

@@ -25,7 +25,7 @@ dependencies {
     api('com.google.protobuf:protobuf-java:${protobufVersion}')
     api("org.apache.tomcat:annotations-api:6.0.53")
 
-    compileOnly("dev.emortal.api:common-proto-sdk:7423ea6") // Used for Functional gRPC responses
+    compileOnly("dev.emortal.api:common-proto-sdk:987060d") // Used for Functional gRPC responses
     compileOnly("com.github.Minestom.Minestom:Minestom:aebf72de90") // Used for moving players to lobby
 
     api("io.grpc:grpc-netty:${grpcVersion}")
