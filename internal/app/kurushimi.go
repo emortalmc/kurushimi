@@ -49,6 +49,8 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 
 	notifier := kafka.NewKafkaNotifier(cfg.Kafka, logger)
 
+	kafka.NewConsumer(ctx, cfg.Kafka, logger, repo)
+
 	err = repo.HealthCheck(ctx, 5*time.Second)
 	if err != nil {
 		logger.Fatalw("failed to initiate mongodb", err)

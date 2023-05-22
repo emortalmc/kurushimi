@@ -58,7 +58,6 @@ message QueueByPlayerErrorResponse {
     INVALID_MAP = 3;
 
     PARTY_TOO_LARGE = 4;
-    PARTIES_NOT_ALLOWED = 5;
 
     // NO_PERMISSION is normally triggered if the player is not the party leader
     NO_PERMISSION = 6;

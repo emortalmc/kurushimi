@@ -53,25 +53,22 @@ func NewMatchmakerService(logger *zap.SugaredLogger, repository repository.Repos
 
 var (
 	queueAlreadyInQueueErr = panicIfErr(status.New(codes.AlreadyExists, "party is already in queue").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_ALREADY_IN_QUEUE})).Err()
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_ALREADY_IN_QUEUE})).Err()
 
 	queueInvalidGameModeErr = panicIfErr(status.New(codes.InvalidArgument, "invalid game_mode_id").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_INVALID_GAME_MODE})).Err()
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_INVALID_GAME_MODE})).Err()
 
 	queueGameModeDisabledErr = panicIfErr(status.New(codes.InvalidArgument, "game_mode_id is disabled").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_GAME_MODE_DISABLED})).Err()
+					WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_GAME_MODE_DISABLED})).Err()
 
 	queueInvalidMapErr = panicIfErr(status.New(codes.InvalidArgument, "invalid map_id").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_INVALID_MAP})).Err()
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_INVALID_MAP})).Err()
 
 	queuePartyTooLargeErr = panicIfErr(status.New(codes.InvalidArgument, "party is too large").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_PARTY_TOO_LARGE})).Err()
-
-	queuePartiesNotAllowedErr = panicIfErr(status.New(codes.InvalidArgument, "parties are not allowed").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_PARTIES_NOT_ALLOWED})).Err()
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_PARTY_TOO_LARGE})).Err()
 
 	queueNoPermissionErr = panicIfErr(status.New(codes.PermissionDenied, "player does not have permission to queue").
-		WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_NO_PERMISSION})).Err()
+				WithDetails(&pb.QueueByPlayerErrorResponse{Reason: pb.QueueByPlayerErrorResponse_NO_PERMISSION})).Err()
 )
 
 // QueueByPlayer requests a player is queued for a game.
@@ -319,13 +316,13 @@ func (m *matchmakerService) QueueInitialLobbyByPlayer(ctx context.Context, reque
 
 var (
 	dequeueNotInQueueErr = panicIfErr(status.New(codes.NotFound, "player is not in queue").
-		WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NOT_IN_QUEUE})).Err()
+				WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NOT_IN_QUEUE})).Err()
 
 	dequeueNoPermissionErr = panicIfErr(status.New(codes.PermissionDenied, "player does not have permission to dequeue").
-		WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NO_PERMISSION})).Err()
+				WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_NO_PERMISSION})).Err()
 
 	dequeueAlreadyDequeuedErr = panicIfErr(status.New(codes.AlreadyExists, "party is already requested for dequeue").
-		WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_ALREADY_MARKED_FOR_DEQUEUE})).Err()
+					WithDetails(&pb.DequeueByPlayerErrorResponse{Reason: pb.DequeueByPlayerErrorResponse_ALREADY_MARKED_FOR_DEQUEUE})).Err()
 )
 
 // DequeueByPlayer requests a player is dequeued from a game. Note that this player acts on behalf of the party, not themselves.
@@ -368,10 +365,10 @@ func (m *matchmakerService) DequeueByPlayer(ctx context.Context, request *pb.Deq
 
 var (
 	changeMapInvalidMapErr = panicIfErr(status.New(codes.InvalidArgument, "invalid map_id").
-		WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_INVALID_MAP})).Err()
+				WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_INVALID_MAP})).Err()
 
 	changeMapNotInQueueErr = panicIfErr(status.New(codes.NotFound, "player is not in queue").
-		WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_NOT_IN_QUEUE})).Err()
+				WithDetails(&pb.ChangePlayerMapVoteErrorResponse{Reason: pb.ChangePlayerMapVoteErrorResponse_NOT_IN_QUEUE})).Err()
 )
 
 func (m *matchmakerService) ChangePlayerMapVote(ctx context.Context, request *pb.ChangePlayerMapVoteRequest) (*pb.ChangePlayerMapVoteResponse, error) {

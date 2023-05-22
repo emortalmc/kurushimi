@@ -79,13 +79,13 @@ public class KurushimiMinestomUtils {
     }
 
     private static void sendToLobby(@NotNull Player player, @NotNull Runnable failureRunnable) {
-        var ticketFuture = KurushimiStubCollection.getFutureStub().get().queueByPlayer(QueueByPlayerRequest.newBuilder()
-                .setPlayerId(player.getUuid().toString())
-                .setGameModeId("lobby")
+        var lobbyReqFuture = KurushimiStubCollection.getFutureStub().get().sendPlayersToLobby(SendPlayerToLobbyRequest.newBuilder()
+                .addPlayerIds(player.getUuid().toString())
+                .setSendParties(false)
                 .build());
 
-        Futures.addCallback(ticketFuture, FunctionalFutureCallback.create(
-                ticket -> {
+        Futures.addCallback(lobbyReqFuture, FunctionalFutureCallback.create(
+                response -> {
                 }, // Do nothing. We simply detect if the player gets teleported
                 throwable -> {
                     failureRunnable.run();
