@@ -1,4 +1,4 @@
-package allocationselector
+package selector
 
 import (
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"

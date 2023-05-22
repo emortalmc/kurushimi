@@ -67,6 +67,13 @@ message Assignment {
   string server_id = 1;
   string server_address = 2;
   uint32 server_port = 3;
+
+  // protocol_version e.g. 754
+  // Not present for proxies
+  optional int64 protocol_version = 4;
+  // version_name e.g. 1.19.4
+  // Not present for proxies
+  optional string version_name = 5;
 }
 
 message PendingMatch {

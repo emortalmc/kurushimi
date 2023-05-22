@@ -15,6 +15,7 @@ import (
 	"kurushimi/internal/config"
 	"kurushimi/internal/director"
 	"kurushimi/internal/kafka"
+	"kurushimi/internal/lobbycontroller"
 	"kurushimi/internal/repository"
 	"kurushimi/internal/service"
 	"kurushimi/internal/utils/kubernetes"
@@ -82,7 +83,14 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 	}
 	partySettingsService := party.NewPartySettingsServiceClient(pSConn)
 
-	pb.RegisterMatchmakerServer(s, service.NewMatchmakerService(repo, notifier, gameModeController, partyService, partySettingsService))
+	allocationClient := agonesClient.AllocationV1().GameServerAllocations(cfg.Namespace)
+
+	// Lobby controller
+	lobbyCtrl := lobbycontroller.NewLobbyController(logger, cfg, notifier, allocationClient)
+	go lobbyCtrl.Run(ctx)
+
+	pb.RegisterMatchmakerServer(s, service.NewMatchmakerService(logger, repo, notifier, gameModeController, lobbyCtrl,
+		partyService, partySettingsService))
 
 	logger.Infow("started kurushimi listener", "port", cfg.Port)
 
@@ -94,7 +102,7 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 		}
 	}()
 
-	directR := director.New(logger, repo, notifier, cfg.Namespace, agonesClient, gameModeController)
+	directR := director.New(logger, repo, notifier, allocationClient, gameModeController)
 	directR.Start(ctx)
 
 	<-ctx.Done()

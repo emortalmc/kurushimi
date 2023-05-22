@@ -2,24 +2,21 @@ package director
 
 import (
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
-	"agones.dev/agones/pkg/client/clientset/versioned"
 	v1 "agones.dev/agones/pkg/client/clientset/versioned/typed/allocation/v1"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kurushimi/internal/config/allocationselector"
+	"kurushimi/internal/gsallocation"
+	selector2 "kurushimi/internal/gsallocation/selector"
 	"kurushimi/internal/kafka"
 	matchfunction2 "kurushimi/internal/matchfunction"
 	"kurushimi/internal/repository"
 	"kurushimi/internal/repository/model"
 	"kurushimi/internal/utils/protoutils"
 	"kurushimi/pkg/pb"
-	"sync"
 	"time"
 )
 
@@ -38,8 +35,16 @@ type directorImpl struct {
 	configs map[string]*liveconfig.GameModeConfig
 }
 
-func New(logger *zap.SugaredLogger, repo repository.Repository, notifier kafka.Notifier, namespace string,
-	agonesClient *versioned.Clientset, cfgController liveconfig.GameModeConfigController) Director {
+func New(logger *zap.SugaredLogger, repo repository.Repository, notifier kafka.Notifier,
+	allocationClient v1.GameServerAllocationInterface, cfgController liveconfig.GameModeConfigController) Director {
+
+	// Filter for only enabled configs
+	configs := cfgController.GetConfigs()
+	for i, liveConfig := range configs {
+		if !liveConfig.Enabled {
+			delete(configs, i)
+		}
+	}
 
 	d := &directorImpl{
 		logger: logger,
@@ -47,7 +52,7 @@ func New(logger *zap.SugaredLogger, repo repository.Repository, notifier kafka.N
 		repo:     repo,
 		notifier: notifier,
 
-		allocationClient: agonesClient.AllocationV1().GameServerAllocations(namespace),
+		allocationClient: allocationClient,
 
 		configs: cfgController.GetConfigs(),
 	}
@@ -473,47 +478,22 @@ func (d *directorImpl) calculateMaps(ctx context.Context, matches []*pb.Match) e
 // returns: map of match id to error
 // NOTE: this function blocks until all matches have been allocated
 // TODO let's make a system to retry failed allocations
-func (d *directorImpl) allocateServers(ctx context.Context, config *liveconfig.GameModeConfig, matches []*pb.Match) map[string]error {
-	wg := sync.WaitGroup{}
-	wg.Add(len(matches))
-
-	matchErrors := make(map[string]error)
-
+func (d *directorImpl) allocateServers(ctx context.Context, config *liveconfig.GameModeConfig, matches []*pb.Match) map[*pb.Match]error {
+	allocationMap := make(map[*pb.Match]*allocatorv1.GameServerAllocation)
 	for _, match := range matches {
-		go func(match *pb.Match) {
-			defer wg.Done()
-			var selector *allocatorv1.GameServerAllocation
-			switch config.MatchmakerInfo.SelectMethod {
-			case liveconfig.SelectMethodAvailable:
-				selector = allocationselector.CreateAvailableSelector(config, match)
-			case liveconfig.SelectMethodPlayerCount:
-				selector = allocationselector.CreatePlayerBasedSelector(config, match, protoutils.GetMatchPlayerCount(match))
-			}
+		var selector *allocatorv1.GameServerAllocation
+		switch config.MatchmakerInfo.SelectMethod {
+		case liveconfig.SelectMethodAvailable:
+			selector = selector2.CreateAvailableSelector(config, match)
+		case liveconfig.SelectMethodPlayerCount:
+			selector = selector2.CreatePlayerBasedSelector(config.FleetName, match, protoutils.GetMatchPlayerCount(match))
+		}
 
-			response, err := d.allocationClient.Create(ctx, selector, v12.CreateOptions{})
-			if err != nil {
-				matchErrors[match.Id] = err
-				return
-			}
-
-			allocation := response.Status
-			if allocation.State != allocatorv1.GameServerAllocationAllocated {
-				matchErrors[match.Id] = errors.New("allocation failed due to invalid state: " + string(allocation.State))
-				return
-			}
-
-			// TODO should we be getting the port like this?
-			// TODO also let's try a cluster only port
-			match.Assignment = &pb.Assignment{
-				ServerId:      allocation.GameServerName,
-				ServerAddress: allocation.Address,
-				ServerPort:    uint32(allocation.Ports[0].Port),
-			}
-		}(match)
+		allocationMap[match] = selector
 	}
 
-	wg.Wait()
-	return matchErrors
+	allocationErrs := gsallocation.AllocateServers(ctx, d.allocationClient, allocationMap)
+	return allocationErrs
 }
 
 func (d *directorImpl) onGameModeConfigUpdate(update liveconfig.ConfigUpdate[liveconfig.GameModeConfig]) {

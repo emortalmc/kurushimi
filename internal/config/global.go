@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/spf13/viper"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -11,6 +12,10 @@ type Config struct {
 	Namespace string
 
 	PartyService *PartyServiceConfig
+
+	LobbyFleetName string
+	LobbyMatchRate time.Duration
+	LobbyMatchSize int
 
 	Port uint16
 

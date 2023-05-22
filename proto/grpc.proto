@@ -11,6 +11,11 @@ import "models.proto";
 service Matchmaker {
   rpc QueueByPlayer(QueueByPlayerRequest) returns (QueueByPlayerResponse) {}
 
+  // SendPlayerToLobby is used to send a player to a lobby match after they've already joined the server.
+  // This is used alternatively to QueueByPlayer as lobby must be handled differently
+  // e.g. you must be able to go to the lobby when in queue for another game mode.
+  rpc SendPlayersToLobby(SendPlayerToLobbyRequest) returns (SendPlayerToLobbyResponse) {}
+
   // QueueInitialLobbyByPlayer is used to queue a player for a lobby match before they've technically joined the server.
   // This is used by the proxy as the player doesn't yet have a party.
   // Note this method does much less validation and error handling than QueueByPlayer due to its intended use case.
@@ -61,6 +66,17 @@ message QueueByPlayerErrorResponse {
 
   ErrorReason reason = 1;
 }
+
+message SendPlayerToLobbyRequest {
+  // player_ids of type (repeated) UUID
+  repeated string player_ids = 1;
+
+  // send_parties defaults to true. If false, only the players specified will be sent to the lobby.
+  // If true, the party of each player will also be sent to the lobby.
+  optional bool send_parties = 2;
+}
+
+message SendPlayerToLobbyResponse {}
 
 message QueueInitialLobbyByPlayerRequest {
   // player_id of type UUID
