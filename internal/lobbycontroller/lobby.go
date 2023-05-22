@@ -4,15 +4,14 @@ import (
 	v13 "agones.dev/agones/pkg/apis/allocation/v1"
 	v1 "agones.dev/agones/pkg/client/clientset/versioned/typed/allocation/v1"
 	"context"
-	"fmt"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"kurushimi/internal/config"
+	"kurushimi/internal/gsallocation"
 	"kurushimi/internal/gsallocation/selector"
 	"kurushimi/internal/kafka"
-	"kurushimi/internal/utils/protoutils"
 	"kurushimi/pkg/pb"
 	"sync"
 	"time"
@@ -70,18 +69,13 @@ func (l *lobbyControllerImpl) Run(ctx context.Context) {
 			lastRunTime := time.Now()
 
 			queuedPlayers := l.resetQueuedPlayers()
+			queuedPlayers = removeSliceDuplicates(queuedPlayers)
 
-			matches := l.createMatchesFromPlayers(queuedPlayers)
-			// Allocate server
-			// TODO make matches get allocated in parallel
-			for _, match := range matches {
-				if err := l.allocateServer(ctx, match); err != nil {
-					l.logger.Errorw("failed to allocate server", "error", err)
-					continue
-				}
-			}
+			matchAllocationReqMap := l.createMatchesFromPlayers(queuedPlayers)
 
-			for _, match := range matches {
+			gsallocation.AllocateServers(ctx, l.allocatorClient, matchAllocationReqMap)
+
+			for match := range matchAllocationReqMap {
 				if err := l.notifier.MatchCreated(ctx, match); err != nil {
 					l.logger.Errorw("failed to send match created message", "error", err)
 				}
@@ -108,8 +102,8 @@ func (l *lobbyControllerImpl) resetQueuedPlayers() []uuid.UUID {
 	return queuedPlayers
 }
 
-func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) []*pb.Match {
-	matches := make([]*pb.Match, 0)
+func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) map[*pb.Match]*v13.GameServerAllocation {
+	allocationReqs := make(map[*pb.Match]*v13.GameServerAllocation)
 
 	currentMatch := &pb.Match{
 		Id:         primitive.NewObjectID().String(),
@@ -120,11 +114,16 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) []
 	}
 	for _, playerId := range playerIds {
 		currentMatch.Tickets = append(currentMatch.Tickets, &pb.Ticket{
-			PlayerIds: []string{playerId.String()},
+			PlayerIds:           []string{playerId.String()},
+			CreatedAt:           timestamppb.Now(),
+			GameModeId:          "lobby",
+			AutoTeleport:        true,
+			DequeueOnDisconnect: false,
+			InPendingMatch:      false,
 		})
 
 		if len(currentMatch.Tickets) >= l.playersPerMatch {
-			matches = append(matches, currentMatch)
+			allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(len(currentMatch.Tickets)))
 			currentMatch = &pb.Match{
 				Id:         primitive.NewObjectID().String(),
 				GameModeId: "lobby",
@@ -136,40 +135,20 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) []
 	}
 
 	if len(currentMatch.Tickets) > 0 {
-		matches = append(matches, currentMatch)
+		allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(len(currentMatch.Tickets)))
 	}
 
-	return matches
+	return allocationReqs
 }
 
-// TODO can we PLEASE make this common code?
-// allocateServer allocates a server for the given match.
-// Sets the assigned server in the pb.Match provided.
-func (l *lobbyControllerImpl) allocateServer(ctx context.Context, match *pb.Match) error {
-	playerCount := protoutils.GetMatchPlayerCount(match)
-
-	resp, err := l.allocatorClient.Create(ctx,
-		selector.CreatePlayerBasedSelector(l.fleetName, match, playerCount),
-		v12.CreateOptions{},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to allocate server: %w", err)
+func removeSliceDuplicates(strSlice []uuid.UUID) []uuid.UUID {
+	allKeys := make(map[uuid.UUID]bool)
+	var list []uuid.UUID
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
 	}
-
-	if resp == nil {
-		return fmt.Errorf("allocation response was nil")
-	}
-
-	allocation := resp.Status
-	if allocation.State != v13.GameServerAllocationAllocated {
-		return fmt.Errorf("allocation state was not allocated: %s", allocation.State)
-	}
-
-	match.Assignment = &pb.Assignment{
-		ServerId:      allocation.GameServerName,
-		ServerAddress: allocation.Address,
-		ServerPort:    uint32(allocation.Ports[0].Port),
-	}
-
-	return nil
+	return list
 }

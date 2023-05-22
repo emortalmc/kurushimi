@@ -26,7 +26,6 @@ message Ticket {
 
   google.protobuf.Timestamp created_at = 3;
 
-
   // player_ids of type UUID (minecraft player id)
   repeated string player_ids = 4;
 
