@@ -12,7 +12,7 @@ require (
 	github.com/spf13/viper v1.14.0
 	go.mongodb.org/mongo-driver v1.11.6
 	go.uber.org/zap v1.24.0
-	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 	k8s.io/apimachinery v0.23.9
