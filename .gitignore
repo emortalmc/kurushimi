@@ -2,7 +2,8 @@
 .idea/
 
 # Common working directory
-run/
+run/**
+!run/config.yaml
 
 *.iml
 *.ipr
