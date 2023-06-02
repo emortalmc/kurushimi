@@ -18,7 +18,7 @@ import (
 )
 
 type LobbyController interface {
-	QueuePlayer(playerId uuid.UUID)
+	QueuePlayer(playerId uuid.UUID, autoTeleport bool)
 
 	// Run runs the lobby controller.
 	// NOTE: This is blocking.
@@ -34,7 +34,8 @@ type lobbyControllerImpl struct {
 	notifier        kafka.Notifier
 	allocatorClient v1.GameServerAllocationInterface
 
-	queuedPlayers     []uuid.UUID
+	// queuedPlayers map[playerId]autoTeleport
+	queuedPlayers     map[uuid.UUID]bool
 	queuedPlayersLock sync.Mutex
 }
 
@@ -50,17 +51,17 @@ func NewLobbyController(logger *zap.SugaredLogger, cfg *config.Config, notifier 
 		notifier:        notifier,
 		allocatorClient: allocatorClient,
 
-		queuedPlayers:     make([]uuid.UUID, 0),
+		queuedPlayers:     make(map[uuid.UUID]bool),
 		queuedPlayersLock: sync.Mutex{},
 	}
 
 }
 
-func (l *lobbyControllerImpl) QueuePlayer(playerId uuid.UUID) {
+func (l *lobbyControllerImpl) QueuePlayer(playerId uuid.UUID, autoTeleport bool) {
 	l.queuedPlayersLock.Lock()
 	defer l.queuedPlayersLock.Unlock()
 
-	l.queuedPlayers = append(l.queuedPlayers, playerId)
+	l.queuedPlayers[playerId] = autoTeleport
 }
 
 func (l *lobbyControllerImpl) Run(ctx context.Context) {
@@ -69,7 +70,6 @@ func (l *lobbyControllerImpl) Run(ctx context.Context) {
 			lastRunTime := time.Now()
 
 			queuedPlayers := l.resetQueuedPlayers()
-			queuedPlayers = removeSliceDuplicates(queuedPlayers)
 
 			matchAllocationReqMap := l.createMatchesFromPlayers(queuedPlayers)
 
@@ -90,19 +90,21 @@ func (l *lobbyControllerImpl) Run(ctx context.Context) {
 	}
 }
 
-func (l *lobbyControllerImpl) resetQueuedPlayers() []uuid.UUID {
+func (l *lobbyControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {
 	l.queuedPlayersLock.Lock()
 	defer l.queuedPlayersLock.Unlock()
 
-	queuedPlayers := make([]uuid.UUID, len(l.queuedPlayers))
-	copy(queuedPlayers, l.queuedPlayers)
+	queuedPlayers := make(map[uuid.UUID]bool, len(l.queuedPlayers))
+	for playerId, autoTeleport := range l.queuedPlayers {
+		queuedPlayers[playerId] = autoTeleport
+	}
 
-	l.queuedPlayers = make([]uuid.UUID, 0)
+	l.queuedPlayers = make(map[uuid.UUID]bool)
 
 	return queuedPlayers
 }
 
-func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) map[*pb.Match]*v13.GameServerAllocation {
+func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]bool) map[*pb.Match]*v13.GameServerAllocation {
 	allocationReqs := make(map[*pb.Match]*v13.GameServerAllocation)
 
 	currentMatch := &pb.Match{
@@ -112,12 +114,12 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) ma
 		Tickets:    make([]*pb.Ticket, 0),
 		Assignment: nil,
 	}
-	for _, playerId := range playerIds {
+	for playerId, autoTeleport := range playerMap {
 		currentMatch.Tickets = append(currentMatch.Tickets, &pb.Ticket{
 			PlayerIds:           []string{playerId.String()},
 			CreatedAt:           timestamppb.Now(),
 			GameModeId:          "lobby",
-			AutoTeleport:        true,
+			AutoTeleport:        autoTeleport,
 			DequeueOnDisconnect: false,
 			InPendingMatch:      false,
 		})
@@ -139,16 +141,4 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerIds []uuid.UUID) ma
 	}
 
 	return allocationReqs
-}
-
-func removeSliceDuplicates(strSlice []uuid.UUID) []uuid.UUID {
-	allKeys := make(map[uuid.UUID]bool)
-	var list []uuid.UUID
-	for _, item := range strSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			list = append(list, item)
-		}
-	}
-	return list
 }

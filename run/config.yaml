@@ -17,7 +17,7 @@ partyService:
 lobbyFleetName: "lobby"
 # Delay between each matchmaker run for lobby matches
 lobbyMatchRate: 400_000_000
-lobbyMatchSize: 30
+lobbyMatchSize: 50
 
 port: 10007
 

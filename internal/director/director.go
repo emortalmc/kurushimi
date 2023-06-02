@@ -365,7 +365,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 	// Assign a server for each match
 	errorMap := d.allocateServers(ctx, config, matches)
 	if len(errorMap) > 0 {
-		d.logger.Errorw("failed to allocate servers", "errorMap", errorMap)
+		d.logger.Error("failed to allocate servers", zap.String("gamemode", config.Id), loggableErrorMap(errorMap))
 	}
 	// TODO let's use the errorMap to do some retry logic and not delete the Tickets and QueuedPlayers
 
@@ -498,4 +498,15 @@ func (d *directorImpl) allocateServers(ctx context.Context, config *liveconfig.G
 
 func (d *directorImpl) onGameModeConfigUpdate(update liveconfig.ConfigUpdate[liveconfig.GameModeConfig]) {
 	// TODO
+}
+
+func loggableErrorMap(errorMap map[*pb.Match]error) []zap.Field {
+	logs := make([]zap.Field, 0, len(errorMap))
+
+	i := 0
+	for match, err := range errorMap {
+		logs[i] = zap.NamedError(match.Id, err)
+	}
+
+	return logs
 }

@@ -277,39 +277,19 @@ func (m *matchmakerService) SendPlayersToLobby(ctx context.Context, request *pb.
 	}
 
 	for _, playerId := range playerIds {
-		m.lobbyController.QueuePlayer(playerId)
+		m.lobbyController.QueuePlayer(playerId, true)
 	}
 
 	return &pb.SendPlayerToLobbyResponse{}, nil
 }
 
-func (m *matchmakerService) QueueInitialLobbyByPlayer(ctx context.Context, request *pb.QueueInitialLobbyByPlayerRequest) (*pb.QueueInitialLobbyByPlayerResponse, error) {
+func (m *matchmakerService) QueueInitialLobbyByPlayer(_ context.Context, request *pb.QueueInitialLobbyByPlayerRequest) (*pb.QueueInitialLobbyByPlayerResponse, error) {
 	playerId, err := uuid.Parse(request.PlayerId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid player_id")
 	}
 
-	gameModeId := "lobby"
-	gameModeConfig := m.cfgController.GetCurrentConfig(gameModeId)
-	if gameModeConfig == nil {
-		return nil, status.Error(codes.Internal, "game mode 'lobby' not found but should always be present")
-	}
-
-	ticket := model.NewTicket(nil, nil, []uuid.UUID{playerId}, gameModeId, false)
-	err = m.repo.CreateTicket(ctx, ticket)
-	if err != nil {
-		return nil, fmt.Errorf("could not create ticket: %w", err)
-	}
-
-	err = m.repo.CreateQueuedPlayers(ctx, []*model.QueuedPlayer{{PlayerId: playerId, TicketId: ticket.Id}})
-	if err != nil {
-		return nil, fmt.Errorf("could not create queued player: %w", err)
-	}
-
-	err = m.notifier.TicketCreated(ctx, ticket)
-	if err != nil {
-		return nil, fmt.Errorf("could not notify ticket created: %w", err)
-	}
+	m.lobbyController.QueuePlayer(playerId, false)
 
 	return &pb.QueueInitialLobbyByPlayerResponse{}, nil
 }
