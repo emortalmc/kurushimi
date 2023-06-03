@@ -5,7 +5,7 @@ go 1.20
 require (
 	agones.dev/agones v1.32.0
 	github.com/emortalmc/live-config-parser/golang v0.0.0-20230410202351-2d1844753964
-	github.com/emortalmc/proto-specs/gen/go v0.0.0-20230504195338-987060da628d
+	github.com/emortalmc/proto-specs/gen/go v0.0.0-20230603170831-d1d6d4a9b1de
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/segmentio/kafka-go v0.4.40
