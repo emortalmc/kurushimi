@@ -501,7 +501,7 @@ func (d *directorImpl) onGameModeConfigUpdate(update liveconfig.ConfigUpdate[liv
 }
 
 func loggableErrorMap(errorMap map[*pb.Match]error) []zap.Field {
-	logs := make([]zap.Field, 0, len(errorMap))
+	logs := make([]zap.Field, len(errorMap))
 
 	i := 0
 	for match, err := range errorMap {
