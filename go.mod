@@ -17,7 +17,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 	k8s.io/apimachinery v0.27.2
 	k8s.io/client-go v0.27.2
-	k8s.io/utils v0.0.0-20230209194617-a36077c30491
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106
 )
 
 require (
