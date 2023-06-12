@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+	"golang.org/x/exp/rand"
 	"kurushimi/internal/gsallocation"
 	selector2 "kurushimi/internal/gsallocation/selector"
 	"kurushimi/internal/kafka"
@@ -459,16 +460,24 @@ func (d *directorImpl) calculateMaps(ctx context.Context, matches []*pb.Match) e
 		}
 
 		// find the map with the most votes
-		var mostVotedMapId *string
+		mostVotedMapIds := make([]*string, 0)
 		mostVotes := 0
+
 		for mapId, votes := range mapVotes {
 			if votes > mostVotes {
-				mostVotedMapId = &mapId
+				mostVotedMapIds = []*string{&mapId}
 				mostVotes = votes
+			}
+			if votes == mostVotes {
+				mostVotedMapIds = append(mostVotedMapIds, &mapId)
 			}
 		}
 
-		match.MapId = mostVotedMapId
+		if len(mostVotedMapIds) > 1 {
+			match.MapId = mostVotedMapIds[rand.Intn(len(mostVotedMapIds))]
+		} else {
+			match.MapId = mostVotedMapIds[0]
+		}
 	}
 
 	return nil
