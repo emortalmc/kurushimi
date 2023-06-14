@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: matchmaker
+  namespace: emortalmc
+  labels:
+    app: matchmaker
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matchmaker
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: matchmaker
+    spec:
+      volumes:
+        - name: gamemodes
+          configMap:
+            name: gamemodes
+            optional: false
+
+      containers:
+        - name: matchmaker
+          image: ghcr.io/emortalmc/kurushimi:546f8412dbe7fbb5a300b5be5abd3e2178d06fb4
+          imagePullPolicy: IfNotPresent
+
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 16Mi
+
+          ports:
+            - name: grpc
+              containerPort: 9010
+
+          volumeMounts:
+            - name: gamemodes
+              mountPath: /app/config/gamemodes
+
+          env:
+            - name: MM_MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: matchmaker-db-creds
+                  key: connection-string
+            - name: MM_NAMESPACE
+              value: "emortalmc"
+            - name: MM_PORT
+              value: "9010"
+            - name: MM_KAFKA_HOST
+              value: "default-kafka-bootstrap"
+            - name: MM_KAFKA_PORT
+              value: "9092"
+            - name: MM_PARTYSERVICE_SERVICEHOST
+              value: "party-manager"
+            - name: MM_PARTYSERVICE_SERVICEPORT
+              value: "9010"
+            - name: MM_PARTYSERVICE_SETTINGSSERVICEHOST
+              value: "party-manager"
+            - name: MM_PARTYSERVICE_SETTINGSSERVICEPORT
+              value: "9010"
+            - name: MM_DEVELOPMENT
+              value: "false"
+            - name: MM_LOBBY_MATCH_SIZE
+              value: "50"
+
+      serviceAccountName: matchmaker
+      automountServiceAccountToken: true
