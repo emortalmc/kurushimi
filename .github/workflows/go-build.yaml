@@ -1,0 +1,28 @@
+name: "Build and push"
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "emortalmc/actions/go/lint@main"
+
+  publish:
+    needs: "lint"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "emortalmc/actions/go/publish-single@main"
+        with:
+          registry-password: "${{ secrets.GITHUB_TOKEN }}"
+
+  deploy:
+    needs: "publish"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "emortalmc/actions/k8s-sync@main"
+        with:
+          manifest-path: "deployment.yaml"
+
