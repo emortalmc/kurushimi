@@ -473,7 +473,8 @@ func (d *directorImpl) calculateMaps(ctx context.Context, matches []*pb.Match) e
 			}
 		}
 
-		if len(mostVotedMapIds) > 1 {
+		mapVoteLen := len(mostVotedMapIds)
+		if mapVoteLen > 1 || mapVoteLen == 0 {
 			match.MapId = mostVotedMapIds[rand.Intn(len(mostVotedMapIds))]
 		} else {
 			match.MapId = mostVotedMapIds[0]
