@@ -16,8 +16,10 @@ import (
 	matchfunction2 "kurushimi/internal/matchfunction"
 	"kurushimi/internal/repository"
 	"kurushimi/internal/repository/model"
+	"kurushimi/internal/utils"
 	"kurushimi/internal/utils/protoutils"
 	"kurushimi/pkg/pb"
+	"reflect"
 	"time"
 )
 
@@ -191,20 +193,20 @@ func (d *directorImpl) processDequeues(ctx context.Context, config *liveconfig.G
 	return err
 }
 
-func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.GameModeConfig) ([]*pb.Match, error) {
+func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.GameModeConfig) ([]*pb.Match, error) {
 	// NOTE: these tickets are ALL the tickets for this gamemode, even ones already in a PendingMatch
-	tickets, err := d.repo.GetTicketsByGameMode(ctx, config.Id)
+	tickets, err := d.repo.GetTicketsByGameMode(ctx, cfg.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	d.logger.Debugw("matchmaker running", "gamemode", config.Id, "tickets", len(tickets), "method", config.MatchmakerInfo.MatchMethod)
+	d.logger.Debugw("matchmaker running", "gamemode", cfg.Id, "tickets", len(tickets), "method", cfg.MatchmakerInfo.MatchMethod)
 
 	// make matches
 	var matches []*pb.Match
-	switch config.MatchmakerInfo.MatchMethod {
+	switch cfg.MatchmakerInfo.MatchMethod {
 	case liveconfig.MatchMethodCountdown:
-		pendingMatches, err := d.repo.GetPendingMatchesByGameMode(ctx, config.Id)
+		pendingMatches, err := d.repo.GetPendingMatchesByGameMode(ctx, cfg.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +224,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 		}
 
 		// Clean up existing pending matches
-		deletedPending := matchfunction2.CountdownRemoveInvalidPendingMatches(pendingMatchesMap, ticketMap, config)
+		deletedPending := matchfunction2.CountdownRemoveInvalidPendingMatches(pendingMatchesMap, ticketMap, cfg)
 
 		// Delete matches from db and notify with reason cancelled
 		if len(deletedPending) > 0 {
@@ -260,13 +262,13 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			}
 		}
 
-		createdPending, updatedPending, deletedPending, createdMatches, err := matchfunction2.RunCountdown(d.logger, ticketMap, pendingMatchesMap, config)
+		createdPending, updatedPending, deletedPending, createdMatches, err := matchfunction2.RunCountdown(d.logger, ticketMap, pendingMatchesMap, cfg)
 		if err != nil {
 			return nil, err
 		}
 
 		d.logger.Debugw("countdown matchmaker results",
-			"gamemode", config.Id,
+			"gamemode", cfg.Id,
 			"pending", len(updatedPending),
 			"deleted", len(deletedPending),
 			"matches", len(createdMatches),
@@ -344,29 +346,29 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 			}
 		}
 	case liveconfig.MatchMethodInstant:
-		matches, err = matchfunction2.RunInstant(tickets, config)
+		matches, err = matchfunction2.RunInstant(tickets, cfg)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	d.logger.Debugw("matchmaker finished", "gamemode", config.Id, "matches", len(matches))
+	d.logger.Debugw("matchmaker finished", "gamemode", cfg.Id, "matches", len(matches))
 
 	if len(matches) == 0 {
 		return nil, nil
 	}
 
-	if len(config.Maps) > 0 {
-		err = d.calculateMaps(ctx, matches)
+	if len(cfg.Maps) > 0 {
+		err = d.calculateMaps(ctx, cfg, matches)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Assign a server for each match
-	errorMap := d.allocateServers(ctx, config, matches)
+	errorMap := d.allocateServers(ctx, cfg, matches)
 	if len(errorMap) > 0 {
-		d.logger.Error("failed to allocate servers", zap.String("gamemode", config.Id), loggableErrorMap(errorMap))
+		d.logger.Error("failed to allocate servers", zap.String("gamemode", cfg.Id), loggableErrorMap(errorMap))
 	}
 	// TODO let's use the errorMap to do some retry logic and not delete the Tickets and QueuedPlayers
 
@@ -429,7 +431,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, config *liveconfig.
 
 // calculate map retrieves the map votes for those present in a Match
 // and assigns the MapId field of a pb.Match
-func (d *directorImpl) calculateMaps(ctx context.Context, matches []*pb.Match) error {
+func (d *directorImpl) calculateMaps(ctx context.Context, cfg *liveconfig.GameModeConfig, matches []*pb.Match) error {
 	for _, match := range matches {
 		playerIds := make([]uuid.UUID, 0)
 
@@ -473,11 +475,21 @@ func (d *directorImpl) calculateMaps(ctx context.Context, matches []*pb.Match) e
 			}
 		}
 
+		// If no maps are voted, add all to the pool
+		if len(mostVotedMapIds) == 0 {
+			for _, lMap := range cfg.Maps {
+				mostVotedMapIds = append(mostVotedMapIds, &lMap.Id)
+			}
+		}
+
 		mapVoteLen := len(mostVotedMapIds)
-		if mapVoteLen > 1 || mapVoteLen == 0 {
+		if mapVoteLen > 1 {
 			match.MapId = mostVotedMapIds[rand.Intn(len(mostVotedMapIds))]
-		} else {
+		} else if mapVoteLen == 1 {
 			match.MapId = mostVotedMapIds[0]
+		} else {
+			random := rand.Intn(len(cfg.Maps))
+			match.MapId = utils.PointerOf(reflect.ValueOf(cfg.Maps).MapKeys()[random].String())
 		}
 	}
 
