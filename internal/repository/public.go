@@ -5,8 +5,6 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"kurushimi/internal/config"
 	"kurushimi/internal/repository/model"
 	"time"
 )
@@ -84,34 +82,4 @@ type Repository interface {
 	// RemoveTicketsFromPendingMatchesById removes ticket IDs from PendingMatches they are present in.
 	// returns: int64, the modified count.
 	RemoveTicketsFromPendingMatchesById(ctx context.Context, ticketIds []primitive.ObjectID) (int64, error)
-}
-
-var _ Repository = &mongoRepository{}
-
-type mongoRepository struct {
-	client   *mongo.Client
-	database *mongo.Database
-
-	queuedPlayerCollection *mongo.Collection
-	ticketCollection       *mongo.Collection
-	pendingMatchCollection *mongo.Collection
-	backfillCollection     *mongo.Collection
-}
-
-func NewMongoRepository(ctx context.Context, cfg *config.MongoDBConfig) (Repository, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.URI).SetRegistry(createCodecRegistry()))
-	if err != nil {
-		return nil, err
-	}
-	database := client.Database(databaseName)
-
-	return &mongoRepository{
-		client:   client,
-		database: database,
-
-		queuedPlayerCollection: database.Collection(queuedPlayerCollectionName),
-		ticketCollection:       database.Collection(ticketCollectionName),
-		pendingMatchCollection: database.Collection(pendingMatchCollectionName),
-		backfillCollection:     database.Collection(backfillCollectionName),
-	}, nil
 }

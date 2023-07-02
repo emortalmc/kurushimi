@@ -42,7 +42,7 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 
 	_, agonesClient := kubernetes.CreateClients()
 
-	repo, err := repository.NewMongoRepository(ctx, cfg.MongoDB)
+	repo, err := repository.NewMongoRepository(ctx, logger, cfg.MongoDB)
 	if err != nil {
 		logger.Fatalw("failed to connect to mongo", err)
 	}

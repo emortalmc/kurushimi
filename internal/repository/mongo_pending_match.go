@@ -85,8 +85,8 @@ func (m *mongoRepository) GetPendingMatchByTicketId(ctx context.Context, ticketI
 }
 
 func (m *mongoRepository) RemoveTicketsFromPendingMatchesById(ctx context.Context, ticketIds []primitive.ObjectID) (int64, error) {
-	//ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	//defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	filter := bson.M{"ticketIds": bson.M{"$in": ticketIds}}
 	update := bson.M{"$pull": bson.M{"ticketIds": bson.M{"$in": ticketIds}}}

@@ -4,38 +4,10 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"kurushimi/internal/repository/model"
-	"kurushimi/internal/repository/registrytypes"
 	"time"
 )
-
-func (m *mongoRepository) HealthCheck(ctx context.Context, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	return m.client.Ping(ctx, nil)
-}
-
-func (m *mongoRepository) ExecuteTransaction(ctx context.Context, fn func(ctx mongo.SessionContext) error) error {
-	wc := writeconcern.New(writeconcern.WMajority())
-	txnOpts := options.Transaction().SetWriteConcern(wc)
-
-	session, err := m.client.StartSession()
-	if err != nil {
-		return err
-	}
-	defer session.EndSession(ctx)
-
-	_, err = session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		return nil, fn(sessCtx)
-	}, txnOpts)
-
-	return err
-}
 
 func (m *mongoRepository) CreateQueuedPlayers(ctx context.Context, players []*model.QueuedPlayer) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -114,11 +86,4 @@ func (m *mongoRepository) SetMapIdOfQueuedPlayer(ctx context.Context, playerId u
 	}
 
 	return nil
-}
-
-func createCodecRegistry() *bsoncodec.Registry {
-	return bson.NewRegistryBuilder().
-		RegisterTypeEncoder(registrytypes.UUIDType, bsoncodec.ValueEncoderFunc(registrytypes.UuidEncodeValue)).
-		RegisterTypeDecoder(registrytypes.UUIDType, bsoncodec.ValueDecoderFunc(registrytypes.UuidDecodeValue)).
-		Build()
 }
