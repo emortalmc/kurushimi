@@ -48,6 +48,13 @@ protobuf {
     }
 }
 
+compileJava {
+    options.compilerArgs.addAll([
+            "--release", "20",
+            "--enable-preview"
+    ])
+}
+
 publishing {
 
     repositories {

@@ -1,5 +1,7 @@
 package dev.emortal.api.kurushimi;
 
+import dev.emortal.api.service.matchmaker.DefaultMatchmakerService;
+import dev.emortal.api.service.matchmaker.MatchmakerService;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -13,33 +15,14 @@ public class KurushimiStubCollection {
     private static final Logger LOGGER = LoggerFactory.getLogger(KurushimiStubCollection.class);
     private static final boolean DEVELOPMENT = System.getenv("KUBERNETES_SERVICE_HOST") == null;
 
-    private static final @NotNull Optional<MatchmakerGrpc.MatchmakerFutureStub> futureStub;
-    private static final @NotNull Optional<MatchmakerGrpc.MatchmakerStub> stub;
-    private static final @NotNull Optional<MatchmakerGrpc.MatchmakerBlockingStub> blockingStub;
+    private static final @NotNull Optional<MatchmakerService> service;
 
     static {
-        Optional<ManagedChannel> channel = createChannel();
-        if (channel.isPresent()) {
-            futureStub = Optional.of(MatchmakerGrpc.newFutureStub(channel.get()));
-            stub = Optional.of(MatchmakerGrpc.newStub(channel.get()));
-            blockingStub = Optional.of(MatchmakerGrpc.newBlockingStub(channel.get()));
-        } else {
-            futureStub = Optional.empty();
-            stub = Optional.empty();
-            blockingStub = Optional.empty();
-        }
+        service = createChannel().map(DefaultMatchmakerService::new);
     }
 
-    public static @NotNull Optional<MatchmakerGrpc.MatchmakerFutureStub> getFutureStub() {
-        return futureStub;
-    }
-
-    public static @NotNull Optional<MatchmakerGrpc.MatchmakerStub> getStub() {
-        return stub;
-    }
-
-    public static @NotNull Optional<MatchmakerGrpc.MatchmakerBlockingStub> getBlockingStub() {
-        return blockingStub;
+    public static @NotNull Optional<MatchmakerService> getService() {
+        return service;
     }
 
     /**

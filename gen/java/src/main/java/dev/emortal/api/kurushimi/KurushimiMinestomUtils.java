@@ -1,7 +1,7 @@
 package dev.emortal.api.kurushimi;
 
-import com.google.common.util.concurrent.Futures;
-import dev.emortal.api.utils.callback.FunctionalFutureCallback;
+import dev.emortal.api.service.matchmaker.MatchmakerService;
+import io.grpc.StatusRuntimeException;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.Player;
 import net.minestom.server.event.EventFilter;
@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KurushimiMinestomUtils {
@@ -43,8 +42,8 @@ public class KurushimiMinestomUtils {
     public static void sendToLobby(Collection<? extends Player> players, Runnable successRunnable,
                                    Runnable failureRunnable, int retries) {
 
-        if (KurushimiStubCollection.getFutureStub().isEmpty())
-            throw new IllegalStateException("Kurushimi stub is not present.");
+        MatchmakerService service = KurushimiStubCollection.getService()
+                .orElseThrow(() -> new IllegalStateException("Kurushimi stub is not present."));
 
         Set<? extends Player> remainingPlayers = new HashSet<>(players);
         AtomicBoolean finished = new AtomicBoolean(false);
@@ -71,27 +70,19 @@ public class KurushimiMinestomUtils {
         });
 
         for (Player player : players) {
-            sendToLobby(player, () -> {
+            Thread.startVirtualThread(() -> sendToLobby(service, player, () -> {
                 // failure
                 LOGGER.warn("Failed to create ticket to send player {} to lobby.", player.getUsername());
-            });
+            }));
         }
     }
 
-    private static void sendToLobby(@NotNull Player player, @NotNull Runnable failureRunnable) {
-        var lobbyReqFuture = KurushimiStubCollection.getFutureStub().get().sendPlayersToLobby(SendPlayerToLobbyRequest.newBuilder()
-                .addPlayerIds(player.getUuid().toString())
-                .setSendParties(false)
-                .build());
-
-        Futures.addCallback(lobbyReqFuture, FunctionalFutureCallback.create(
-                response -> {
-                }, // Do nothing. We simply detect if the player gets teleported
-                throwable -> {
-                    failureRunnable.run();
-                    // todo log
-                }
-        ), ForkJoinPool.commonPool());
+    private static void sendToLobby(@NotNull MatchmakerService service, @NotNull Player player, @NotNull Runnable failureRunnable) {
+        try {
+            service.sendPlayerToLobby(player.getUuid(), false);
+        } catch (StatusRuntimeException exception) {
+            failureRunnable.run();
+        }
     }
 
     /**
