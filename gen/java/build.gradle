@@ -3,7 +3,7 @@ plugins {
     id("maven-publish")
 
     // gRPC
-    id("com.google.protobuf") version "0.9.2"
+    id("com.google.protobuf") version "0.9.4"
 }
 
 group "dev.emortal.api.kurushimi"
