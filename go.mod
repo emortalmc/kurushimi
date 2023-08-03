@@ -1,4 +1,4 @@
-module kurushimi
+module github.com/emortalmc/kurushimi
 
 go 1.20
 
