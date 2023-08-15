@@ -9,7 +9,7 @@ plugins {
 group "dev.emortal.api.kurushimi"
 version "1.0"
 
-def grpcVersion = "1.54.0"
+def grpcVersion = "1.57.2"
 def protobufVersion = "3.21.12"
 def protocVersion = protobufVersion
 
