@@ -73,7 +73,10 @@ func (l *lobbyControllerImpl) Run(ctx context.Context) {
 
 			matchAllocationReqMap := l.createMatchesFromPlayers(queuedPlayers)
 
-			gsallocation.AllocateServers(ctx, l.allocatorClient, matchAllocationReqMap)
+			allocationErrors := gsallocation.AllocateServers(ctx, l.allocatorClient, matchAllocationReqMap)
+			for match, err := range allocationErrors {
+				l.logger.Errorw("failed to allocate server for match", "error", err, "match", match)
+			}
 
 			for match := range matchAllocationReqMap {
 				if err := l.notifier.MatchCreated(ctx, match); err != nil {
