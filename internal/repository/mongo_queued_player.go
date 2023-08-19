@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
+	"github.com/emortalmc/kurushimi/internal/repository/model"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"kurushimi/internal/repository/model"
 	"time"
 )
 

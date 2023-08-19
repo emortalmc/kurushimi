@@ -1,11 +1,11 @@
 package model
 
 import (
+	"github.com/emortalmc/kurushimi/internal/utils"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"kurushimi/internal/utils"
-	"kurushimi/pkg/pb"
 	"time"
 )
 

@@ -3,6 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/emortalmc/kurushimi/internal/kafka"
+	"github.com/emortalmc/kurushimi/internal/lobbycontroller"
+	"github.com/emortalmc/kurushimi/internal/repository"
+	"github.com/emortalmc/kurushimi/internal/repository/model"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	pbparty "github.com/emortalmc/proto-specs/gen/go/grpc/party"
 	"github.com/google/uuid"
@@ -12,11 +17,6 @@ import (
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"kurushimi/internal/kafka"
-	"kurushimi/internal/lobbycontroller"
-	"kurushimi/internal/repository"
-	"kurushimi/internal/repository/model"
-	"kurushimi/pkg/pb"
 	"sync"
 )
 

@@ -1,10 +1,10 @@
 package matchfunction
 
 import (
+	"github.com/emortalmc/kurushimi/internal/repository/model"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"kurushimi/internal/repository/model"
-	"kurushimi/pkg/pb"
 )
 
 func RunInstant(tickets []*model.Ticket, config *liveconfig.GameModeConfig) (createdMatches []*pb.Match, err error) {

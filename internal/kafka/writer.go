@@ -3,12 +3,12 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"github.com/emortalmc/kurushimi/internal/config"
+	"github.com/emortalmc/kurushimi/internal/repository/model"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	"kurushimi/internal/config"
-	"kurushimi/internal/repository/model"
-	"kurushimi/pkg/pb"
 	"time"
 )
 

@@ -4,9 +4,9 @@ import (
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
 	"encoding/base64"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	"google.golang.org/protobuf/proto"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kurushimi/pkg/pb"
 )
 
 var (

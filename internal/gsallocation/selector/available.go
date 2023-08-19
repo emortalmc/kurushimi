@@ -3,9 +3,9 @@ package selector
 import (
 	"agones.dev/agones/pkg/apis"
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kurushimi/pkg/pb"
 )
 
 func CreateAvailableSelector(cfg *liveconfig.GameModeConfig, match *pb.Match) *allocatorv1.GameServerAllocation {

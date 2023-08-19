@@ -2,9 +2,9 @@ package kubernetes
 
 import (
 	"agones.dev/agones/pkg/client/clientset/versioned"
+	"github.com/emortalmc/kurushimi/internal/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"kurushimi/internal/utils"
 	"time"
 )
 

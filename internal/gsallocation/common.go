@@ -5,9 +5,9 @@ import (
 	v1 "agones.dev/agones/pkg/client/clientset/versioned/typed/allocation/v1"
 	"context"
 	"fmt"
+	"github.com/emortalmc/kurushimi/internal/utils"
+	"github.com/emortalmc/kurushimi/pkg/pb"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kurushimi/internal/utils"
-	"kurushimi/pkg/pb"
 	"strconv"
 	"sync"
 )

@@ -3,6 +3,8 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"github.com/emortalmc/kurushimi/internal/config"
+	"github.com/emortalmc/kurushimi/internal/repository"
 	"github.com/emortalmc/proto-specs/gen/go/message/party"
 	"github.com/emortalmc/proto-specs/gen/go/nongenerated/kafkautils"
 	"github.com/google/uuid"
@@ -10,8 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	"kurushimi/internal/config"
-	"kurushimi/internal/repository"
 	"time"
 )
 

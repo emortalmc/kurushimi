@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/emortalmc/kurushimi/internal/app"
+	"github.com/emortalmc/kurushimi/internal/config"
 	"go.uber.org/zap"
-	"kurushimi/internal/app"
-	"kurushimi/internal/config"
 	"log"
 )
 

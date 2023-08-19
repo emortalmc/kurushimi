@@ -1,6 +1,6 @@
 package protoutils
 
-import "kurushimi/pkg/pb"
+import "github.com/emortalmc/kurushimi/pkg/pb"
 
 func GetMatchPlayerCount(match *pb.Match) int64 {
 	count := 0
