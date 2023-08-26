@@ -10,7 +10,7 @@ group "dev.emortal.api.kurushimi"
 version "1.0"
 
 def grpcVersion = "1.54.0"
-def protobufVersion = "3.21.12"
+def protobufVersion = "3.24.2"
 def protocVersion = protobufVersion
 
 repositories {
