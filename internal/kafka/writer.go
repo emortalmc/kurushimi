@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/emortalmc/kurushimi/internal/config"
 	"github.com/emortalmc/kurushimi/internal/repository/model"
-	"github.com/emortalmc/kurushimi/pkg/pb"
+	msg "github.com/emortalmc/proto-specs/gen/go/message/matchmaker"
+	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -18,11 +19,11 @@ const writeTopic = "matchmaker"
 type Notifier interface {
 	TicketCreated(ctx context.Context, ticket *model.Ticket) error
 	TicketUpdated(ctx context.Context, ticket *model.Ticket) error
-	TicketDeleted(ctx context.Context, ticket *pb.Ticket, reason pb.TicketDeletedMessage_Reason) error
+	TicketDeleted(ctx context.Context, ticket *pb.Ticket, reason msg.TicketDeletedMessage_Reason) error
 
 	PendingMatchCreated(ctx context.Context, match *model.PendingMatch) error
 	PendingMatchUpdated(ctx context.Context, match *model.PendingMatch) error
-	PendingMatchDeleted(ctx context.Context, match *model.PendingMatch, reason pb.PendingMatchDeletedMessage_Reason) error
+	PendingMatchDeleted(ctx context.Context, match *model.PendingMatch, reason msg.PendingMatchDeletedMessage_Reason) error
 
 	MatchCreated(ctx context.Context, match *pb.Match) error
 }
@@ -48,7 +49,7 @@ func (k *kafkaNotifier) TicketCreated(ctx context.Context, ticket *model.Ticket)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.TicketCreatedMessage{Ticket: ticket.ToProto()}
+	pMsg := &msg.TicketCreatedMessage{Ticket: ticket.ToProto()}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err
@@ -66,7 +67,7 @@ func (k *kafkaNotifier) TicketUpdated(ctx context.Context, ticket *model.Ticket)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.TicketUpdatedMessage{NewTicket: ticket.ToProto()}
+	pMsg := &msg.TicketUpdatedMessage{NewTicket: ticket.ToProto()}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err
@@ -80,11 +81,11 @@ func (k *kafkaNotifier) TicketUpdated(ctx context.Context, ticket *model.Ticket)
 	return err
 }
 
-func (k *kafkaNotifier) TicketDeleted(ctx context.Context, ticket *pb.Ticket, reason pb.TicketDeletedMessage_Reason) error {
+func (k *kafkaNotifier) TicketDeleted(ctx context.Context, ticket *pb.Ticket, reason msg.TicketDeletedMessage_Reason) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.TicketDeletedMessage{Ticket: ticket, Reason: reason}
+	pMsg := &msg.TicketDeletedMessage{Ticket: ticket, Reason: reason}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err
@@ -102,7 +103,7 @@ func (k *kafkaNotifier) PendingMatchCreated(ctx context.Context, match *model.Pe
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.PendingMatchCreatedMessage{PendingMatch: match.ToProto()}
+	pMsg := &msg.PendingMatchCreatedMessage{PendingMatch: match.ToProto()}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err
@@ -120,7 +121,7 @@ func (k *kafkaNotifier) PendingMatchUpdated(ctx context.Context, match *model.Pe
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.PendingMatchUpdatedMessage{PendingMatch: match.ToProto()}
+	pMsg := &msg.PendingMatchUpdatedMessage{PendingMatch: match.ToProto()}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err
@@ -134,11 +135,11 @@ func (k *kafkaNotifier) PendingMatchUpdated(ctx context.Context, match *model.Pe
 	return err
 }
 
-func (k *kafkaNotifier) PendingMatchDeleted(ctx context.Context, match *model.PendingMatch, reason pb.PendingMatchDeletedMessage_Reason) error {
+func (k *kafkaNotifier) PendingMatchDeleted(ctx context.Context, match *model.PendingMatch, reason msg.PendingMatchDeletedMessage_Reason) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.PendingMatchDeletedMessage{PendingMatch: match.ToProto(), Reason: reason}
+	pMsg := &msg.PendingMatchDeletedMessage{PendingMatch: match.ToProto(), Reason: reason}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err
@@ -156,7 +157,7 @@ func (k *kafkaNotifier) MatchCreated(ctx context.Context, match *pb.Match) error
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pMsg := &pb.MatchCreatedMessage{Match: match}
+	pMsg := &msg.MatchCreatedMessage{Match: match}
 	bytes, err := proto.Marshal(pMsg)
 	if err != nil {
 		return err

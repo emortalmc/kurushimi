@@ -2,8 +2,8 @@ package matchfunction
 
 import (
 	"github.com/emortalmc/kurushimi/internal/repository/model"
-	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
+	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"sort"

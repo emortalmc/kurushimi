@@ -13,8 +13,9 @@ import (
 	"github.com/emortalmc/kurushimi/internal/repository/model"
 	"github.com/emortalmc/kurushimi/internal/utils"
 	"github.com/emortalmc/kurushimi/internal/utils/protoutils"
-	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
+	msg "github.com/emortalmc/proto-specs/gen/go/message/matchmaker"
+	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -158,7 +159,7 @@ func (d *directorImpl) processDequeues(ctx context.Context, config *liveconfig.G
 		// Send Kafka notifications
 		for _, ticket := range tickets {
 			if ticket.Removals.MarkedForRemoval {
-				if err := d.notifier.TicketDeleted(ctx, ticket.ToProto(), pb.TicketDeletedMessage_MANUAL_DEQUEUE); err != nil {
+				if err := d.notifier.TicketDeleted(ctx, ticket.ToProto(), msg.TicketDeletedMessage_MANUAL_DEQUEUE); err != nil {
 					d.logger.Errorw("failed to send ticket deleted notification", "error", err)
 				}
 			}
@@ -231,7 +232,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 			//ticketUpdates := make(map[primitive.ObjectID]bool)
 
 			for _, match := range deletedPending {
-				if err := d.notifier.PendingMatchDeleted(ctx, match, pb.PendingMatchDeletedMessage_CANCELLED); err != nil {
+				if err := d.notifier.PendingMatchDeleted(ctx, match, msg.PendingMatchDeletedMessage_CANCELLED); err != nil {
 					d.logger.Errorw("failed to send pending match deleted notification", "error", err)
 				}
 
@@ -318,7 +319,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 			}
 
 			for _, match := range deletedPending {
-				if err := d.notifier.PendingMatchDeleted(ctx, match, pb.PendingMatchDeletedMessage_MATCH_CREATED); err != nil {
+				if err := d.notifier.PendingMatchDeleted(ctx, match, msg.PendingMatchDeletedMessage_MATCH_CREATED); err != nil {
 					d.logger.Errorw("failed to notify pending match deleted", "error", err)
 				}
 			}
@@ -396,7 +397,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 
 			// (Kafka) Notify of ticket deletion
 			// TODO this is actually wrong. This match may have been deleted because there were no longer enough tickets to maintain the PendingMatch
-			if err := d.notifier.TicketDeleted(ctx, pbTicket, pb.TicketDeletedMessage_MATCH_CREATED); err != nil {
+			if err := d.notifier.TicketDeleted(ctx, pbTicket, msg.TicketDeletedMessage_MATCH_CREATED); err != nil {
 				d.logger.Errorw("failed to notify ticket deleted", "error", err)
 			}
 
@@ -430,7 +431,7 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 }
 
 // calculate map retrieves the map votes for those present in a Match
-// and assigns the MapId field of a pb.Match
+// and assigns the MapId field of a msg.Match
 func (d *directorImpl) calculateMaps(ctx context.Context, cfg *liveconfig.GameModeConfig, matches []*pb.Match) error {
 	for _, match := range matches {
 		playerIds := make([]uuid.UUID, 0)

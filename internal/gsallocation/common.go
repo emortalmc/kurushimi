@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/emortalmc/kurushimi/internal/utils"
-	"github.com/emortalmc/kurushimi/pkg/pb"
+	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 	"sync"

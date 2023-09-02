@@ -10,10 +10,10 @@ import (
 	"github.com/emortalmc/kurushimi/internal/repository"
 	"github.com/emortalmc/kurushimi/internal/service"
 	"github.com/emortalmc/kurushimi/internal/utils/kubernetes"
-	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
+	"github.com/emortalmc/proto-specs/gen/go/grpc/matchmaker"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/party"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -61,7 +61,7 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 		logger.Fatalw("failed to listen", err)
 	}
 
-	s := grpc.NewServer(grpc.ChainUnaryInterceptor(grpc_zap.UnaryServerInterceptor(logger.Desugar(), grpc_zap.WithLevels(func(code codes.Code) zapcore.Level {
+	s := grpc.NewServer(grpc.ChainUnaryInterceptor(grpczap.UnaryServerInterceptor(logger.Desugar(), grpczap.WithLevels(func(code codes.Code) zapcore.Level {
 		if code != codes.Internal && code != codes.Unavailable && code != codes.Unknown {
 			return zapcore.DebugLevel
 		} else {
@@ -91,7 +91,7 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 	lobbyCtrl := lobbycontroller.NewLobbyController(logger, cfg, notifier, allocationClient)
 	go lobbyCtrl.Run(ctx)
 
-	pb.RegisterMatchmakerServer(s, service.NewMatchmakerService(logger, repo, notifier, gameModeController, lobbyCtrl,
+	matchmaker.RegisterMatchmakerServer(s, service.NewMatchmakerService(logger, repo, notifier, gameModeController, lobbyCtrl,
 		partyService, partySettingsService))
 
 	logger.Infow("started kurushimi listener", "port", cfg.Port)

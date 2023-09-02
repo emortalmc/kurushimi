@@ -3,8 +3,8 @@ package selector
 import (
 	"agones.dev/agones/pkg/apis"
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
-	"github.com/emortalmc/kurushimi/pkg/pb"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
+	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

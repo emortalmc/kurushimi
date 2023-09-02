@@ -8,7 +8,7 @@ import (
 	"github.com/emortalmc/kurushimi/internal/gsallocation"
 	"github.com/emortalmc/kurushimi/internal/gsallocation/selector"
 	"github.com/emortalmc/kurushimi/internal/kafka"
-	"github.com/emortalmc/kurushimi/pkg/pb"
+	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
