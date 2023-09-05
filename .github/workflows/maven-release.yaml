@@ -22,7 +22,7 @@ jobs:
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@ccb4328a959376b642e027874838f60f8e596de3
       - name: Publish package
-        uses: gradle/gradle-build-action@1b2daf58338ede8c62b0fa54355d1f515f659ad8
+        uses: gradle/gradle-build-action@3bfe3a46584a206fb8361cdedd0647b0c4204232
         with:
           arguments: publishMavenPublicationToReleaseRepository
           gradle-executable: ./gen/java/gradlew
