@@ -130,8 +130,7 @@ func (m *mongoRepository) HealthCheck(ctx context.Context, timeout time.Duration
 }
 
 func (m *mongoRepository) ExecuteTransaction(ctx context.Context, fn func(ctx mongo.SessionContext) error) error {
-	wc := writeconcern.New(writeconcern.WMajority())
-	txnOpts := options.Transaction().SetWriteConcern(wc)
+	txnOpts := options.Transaction().SetWriteConcern(writeconcern.Majority())
 
 	session, err := m.client.StartSession()
 	if err != nil {
@@ -147,8 +146,10 @@ func (m *mongoRepository) ExecuteTransaction(ctx context.Context, fn func(ctx mo
 }
 
 func createCodecRegistry() *bsoncodec.Registry {
-	return bson.NewRegistryBuilder().
-		RegisterTypeEncoder(registrytypes.UUIDType, bsoncodec.ValueEncoderFunc(registrytypes.UuidEncodeValue)).
-		RegisterTypeDecoder(registrytypes.UUIDType, bsoncodec.ValueDecoderFunc(registrytypes.UuidDecodeValue)).
-		Build()
+	r := bson.NewRegistry()
+
+	r.RegisterTypeEncoder(registrytypes.UUIDType, bsoncodec.ValueEncoderFunc(registrytypes.UuidEncodeValue))
+	r.RegisterTypeDecoder(registrytypes.UUIDType, bsoncodec.ValueDecoderFunc(registrytypes.UuidDecodeValue))
+
+	return r
 }
