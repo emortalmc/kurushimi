@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/emortalmc/kurushimi/internal/app"
 	"github.com/emortalmc/kurushimi/internal/config"
 	"go.uber.org/zap"
@@ -20,9 +19,7 @@ func main() {
 	}
 	logger := unsugared.Sugar()
 
-	ctx := context.Background()
-
-	app.Run(ctx, cfg, logger)
+	app.Run(cfg, logger)
 }
 
 func createLogger(cfg *config.Config) (logger *zap.Logger, err error) {
@@ -31,8 +28,5 @@ func createLogger(cfg *config.Config) (logger *zap.Logger, err error) {
 	} else {
 		logger, err = zap.NewProduction()
 	}
-	if err != nil {
-		return nil, err
-	}
-	return logger, nil
+	return
 }

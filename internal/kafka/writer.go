@@ -10,6 +10,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
+	"sync"
 	"time"
 )
 
@@ -32,7 +33,7 @@ type kafkaNotifier struct {
 	w *kafka.Writer
 }
 
-func NewKafkaNotifier(config *config.KafkaConfig, logger *zap.SugaredLogger) Notifier {
+func NewKafkaNotifier(ctx context.Context, wg *sync.WaitGroup, config *config.KafkaConfig, logger *zap.SugaredLogger) Notifier {
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(fmt.Sprintf("%s:%d", config.Host, config.Port)),
 		Topic:        writeTopic,
@@ -41,6 +42,15 @@ func NewKafkaNotifier(config *config.KafkaConfig, logger *zap.SugaredLogger) Not
 		BatchTimeout: 100 * time.Millisecond,
 		ErrorLogger:  kafka.LoggerFunc(logger.Errorw),
 	}
+
+	wg.Add(1)
+	go func() {
+		<-ctx.Done()
+		if err := w.Close(); err != nil {
+			logger.Errorw("failed to close kafka writer", "error", err)
+		}
+		wg.Done()
+	}()
 
 	return &kafkaNotifier{w: w}
 }

@@ -27,7 +27,7 @@ type mongoRepository struct {
 	backfillCollection     *mongo.Collection
 }
 
-func NewMongoRepository(ctx context.Context, logger *zap.SugaredLogger, cfg *config.MongoDBConfig) (Repository, error) {
+func NewMongoRepository(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg *config.MongoDBConfig) (Repository, error) {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.URI).SetRegistry(createCodecRegistry()))
 	if err != nil {
 		return nil, err
@@ -43,6 +43,15 @@ func NewMongoRepository(ctx context.Context, logger *zap.SugaredLogger, cfg *con
 		pendingMatchCollection: database.Collection(pendingMatchCollectionName),
 		backfillCollection:     database.Collection(backfillCollectionName),
 	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-ctx.Done()
+		if err := client.Disconnect(ctx); err != nil {
+			logger.Errorw("failed to disconnect from mongo", err)
+		}
+	}()
 
 	repo.createIndexes(ctx)
 	logger.Infow("created mongo indexes")

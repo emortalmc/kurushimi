@@ -19,10 +19,6 @@ import (
 
 type LobbyController interface {
 	QueuePlayer(playerId uuid.UUID, autoTeleport bool)
-
-	// Run runs the lobby controller.
-	// NOTE: This is blocking.
-	Run(ctx context.Context)
 }
 
 type lobbyControllerImpl struct {
@@ -39,10 +35,10 @@ type lobbyControllerImpl struct {
 	queuedPlayersLock sync.Mutex
 }
 
-func NewLobbyController(logger *zap.SugaredLogger, cfg *config.Config, notifier kafka.Notifier,
+func NewLobbyController(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg *config.Config, notifier kafka.Notifier,
 	allocatorClient v1.GameServerAllocationInterface) LobbyController {
 
-	return &lobbyControllerImpl{
+	c := &lobbyControllerImpl{
 		fleetName:       cfg.LobbyFleetName,
 		matchmakingRate: cfg.LobbyMatchRate,
 		playersPerMatch: cfg.LobbyMatchSize,
@@ -55,6 +51,9 @@ func NewLobbyController(logger *zap.SugaredLogger, cfg *config.Config, notifier 
 		queuedPlayersLock: sync.Mutex{},
 	}
 
+	c.run(wg, ctx)
+
+	return c
 }
 
 func (l *lobbyControllerImpl) QueuePlayer(playerId uuid.UUID, autoTeleport bool) {
@@ -64,9 +63,14 @@ func (l *lobbyControllerImpl) QueuePlayer(playerId uuid.UUID, autoTeleport bool)
 	l.queuedPlayers[playerId] = autoTeleport
 }
 
-func (l *lobbyControllerImpl) Run(ctx context.Context) {
-	for {
-		func() {
+func (l *lobbyControllerImpl) run(wg *sync.WaitGroup, ctx context.Context) {
+	go func() {
+		for {
+			if ctx.Err() != nil {
+				wg.Done()
+				return
+			}
+
 			lastRunTime := time.Now()
 
 			queuedPlayers := l.resetQueuedPlayers()
@@ -89,8 +93,8 @@ func (l *lobbyControllerImpl) Run(ctx context.Context) {
 			if timeSinceLastRun < l.matchmakingRate {
 				time.Sleep(l.matchmakingRate - timeSinceLastRun)
 			}
-		}()
-	}
+		}
+	}()
 }
 
 func (l *lobbyControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {

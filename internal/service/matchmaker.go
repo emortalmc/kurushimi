@@ -35,7 +35,7 @@ type matchmakerService struct {
 	partySettingsService pbparty.PartySettingsServiceClient
 }
 
-func NewMatchmakerService(logger *zap.SugaredLogger, repository repository.Repository, notifier kafka.Notifier,
+func newMatchmakerService(logger *zap.SugaredLogger, repository repository.Repository, notifier kafka.Notifier,
 	cfgController liveconfig.GameModeConfigController, lobbyController lobbycontroller.LobbyController,
 	partyService pbparty.PartyServiceClient, partySettingsService pbparty.PartySettingsServiceClient) matchmaker.MatchmakerServer {
 

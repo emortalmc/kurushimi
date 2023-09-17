@@ -11,21 +11,24 @@ import (
 	"github.com/emortalmc/kurushimi/internal/service"
 	"github.com/emortalmc/kurushimi/internal/utils/kubernetes"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
-	"github.com/emortalmc/proto-specs/gen/go/grpc/matchmaker"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/party"
-	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
-	"net"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 )
 
-func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
-	logger.Info("starting kurushimi")
+func Run(cfg *config.Config, logger *zap.SugaredLogger) {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+	wg := &sync.WaitGroup{}
+
+	repoCtx, repoCancel := context.WithCancel(ctx)
+	repoWg := &sync.WaitGroup{}
+
 	// Parse gamemode configs
 	gameModeController, err := liveconfig.NewGameModeConfigController(logger)
 	if err != nil {
@@ -42,42 +45,19 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 
 	_, agonesClient := kubernetes.CreateClients()
 
-	repo, err := repository.NewMongoRepository(ctx, logger, cfg.MongoDB)
+	repo, err := repository.NewMongoRepository(repoCtx, repoWg, logger, cfg.MongoDB)
 	if err != nil {
 		logger.Fatalw("failed to connect to mongo", err)
 	}
 
-	notifier := kafka.NewKafkaNotifier(cfg.Kafka, logger)
+	notifier := kafka.NewKafkaNotifier(ctx, wg, cfg.Kafka, logger)
 
-	kafka.NewConsumer(ctx, cfg.Kafka, logger, repo)
+	kafka.NewConsumer(ctx, wg, cfg.Kafka, logger, repo)
 
 	err = repo.HealthCheck(ctx, 5*time.Second)
 	if err != nil {
 		logger.Fatalw("failed to initiate mongodb", err)
 	}
-
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
-	if err != nil {
-		logger.Fatalw("failed to listen", err)
-	}
-
-	s := grpc.NewServer(grpc.ChainUnaryInterceptor(grpczap.UnaryServerInterceptor(logger.Desugar(), grpczap.WithLevels(func(code codes.Code) zapcore.Level {
-		if code != codes.Internal && code != codes.Unavailable && code != codes.Unknown {
-			return zapcore.DebugLevel
-		} else {
-			return zapcore.ErrorLevel
-		}
-	}))))
-
-	if cfg.Development {
-		reflection.Register(s)
-	}
-
-	pConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.ServiceHost, cfg.PartyService.ServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		logger.Fatalw("failed to connect to party service", err)
-	}
-	partyService := party.NewPartyServiceClient(pConn)
 
 	pSConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.SettingsServiceHost, cfg.PartyService.SettingsServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -87,27 +67,24 @@ func Run(ctx context.Context, cfg *config.Config, logger *zap.SugaredLogger) {
 
 	allocationClient := agonesClient.AllocationV1().GameServerAllocations(cfg.Namespace)
 
+	pConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.ServiceHost, cfg.PartyService.ServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Fatalw("failed to connect to party service", err)
+	}
+
+	partyService := party.NewPartyServiceClient(pConn)
+
 	// Lobby controller
-	lobbyCtrl := lobbycontroller.NewLobbyController(logger, cfg, notifier, allocationClient)
-	go lobbyCtrl.Run(ctx)
+	lobbyCtrl := lobbycontroller.NewLobbyController(ctx, wg, logger, cfg, notifier, allocationClient)
 
-	matchmaker.RegisterMatchmakerServer(s, service.NewMatchmakerService(logger, repo, notifier, gameModeController, lobbyCtrl,
-		partyService, partySettingsService))
-
-	logger.Infow("started kurushimi listener", "port", cfg.Port)
-
-	go func() {
-		err = s.Serve(lis)
-		if err != nil {
-			logger.Fatalw("failed to serve", err)
-			return
-		}
-	}()
+	service.RunServices(ctx, logger, wg, cfg, repo, notifier, gameModeController, lobbyCtrl, partyService, partySettingsService)
 
 	directR := director.New(logger, repo, notifier, allocationClient, gameModeController)
 	directR.Start(ctx)
 
-	<-ctx.Done()
-	logger.Info("shutting down kurushimi")
-	s.Stop()
+	wg.Wait()
+
+	logger.Info("shutting down repository")
+	repoCancel()
+	repoWg.Wait()
 }
