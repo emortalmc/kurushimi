@@ -11,7 +11,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.40
 	github.com/spf13/viper v1.16.0
 	go.mongodb.org/mongo-driver v1.12.1
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.30.0
@@ -63,8 +63,8 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/goleak v1.1.12 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/goleak v1.2.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
