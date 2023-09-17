@@ -1,6 +1,6 @@
 module github.com/emortalmc/kurushimi
 
-go 1.20
+go 1.21
 
 require (
 	agones.dev/agones v1.32.0
