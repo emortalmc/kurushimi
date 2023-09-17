@@ -27,7 +27,7 @@ spec:
 
       containers:
         - name: matchmaker
-          image: ghcr.io/emortalmc/kurushimi:ba4c8436081726dceb0a451cede0e6adf8f4787a
+          image: ghcr.io/emortalmc/kurushimi:b27dd13852509ede48b2617e5c355d5e21ed1e57
           imagePullPolicy: IfNotPresent
 
           resources:
