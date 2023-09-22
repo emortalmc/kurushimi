@@ -39,7 +39,7 @@ func NewKafkaNotifier(ctx context.Context, wg *sync.WaitGroup, config *config.Ka
 		Topic:        writeTopic,
 		Balancer:     &kafka.LeastBytes{},
 		Async:        true,
-		BatchTimeout: 100 * time.Millisecond,
+		BatchTimeout: 50 * time.Millisecond,
 		ErrorLogger:  kafka.LoggerFunc(logger.Errorw),
 	}
 

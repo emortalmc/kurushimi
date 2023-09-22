@@ -30,9 +30,6 @@ func CreatePlayerBasedSelector(fleetName string, match *pb.Match, playerCount in
 				},
 				createReadySelector(fleetName),
 			},
-			MetaPatch: allocatorv1.MetaPatch{
-				Annotations: createPatchedAnnotations(match),
-			},
 		},
 	}
 }

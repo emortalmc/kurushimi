@@ -26,9 +26,6 @@ func CreateAvailableSelector(cfg *liveconfig.GameModeConfig, match *pb.Match) *a
 				},
 				createReadySelector(fleetName),
 			},
-			MetaPatch: allocatorv1.MetaPatch{
-				Annotations: createPatchedAnnotations(match),
-			},
 		},
 	}
 }

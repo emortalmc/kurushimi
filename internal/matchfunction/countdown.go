@@ -53,8 +53,6 @@ func RunCountdown(logger *zap.SugaredLogger, ticketMap map[primitive.ObjectID]*m
 	deletedPendingMatches = make([]*model.PendingMatch, 0)
 	createdMatches = make([]*pb.Match, 0)
 
-	logger.Debugw("RunCountdown", "ticketCount", len(ticketMap), "pendingMatchesCount", len(pendingMatches), "config", config.Id)
-
 	remainingTicketMap := make(map[primitive.ObjectID]*model.Ticket)
 	for ticketId, ticket := range ticketMap {
 		if !ticket.InPendingMatch {

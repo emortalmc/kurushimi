@@ -201,7 +201,9 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 		return nil, err
 	}
 
-	d.logger.Debugw("matchmaker running", "gamemode", cfg.Id, "tickets", len(tickets), "method", cfg.MatchmakerInfo.MatchMethod)
+	if len(tickets) != 0 {
+		d.logger.Debugw("matchmaker running", "gamemode", cfg.Id, "tickets", len(tickets), "method", cfg.MatchmakerInfo.MatchMethod)
+	}
 
 	// make matches
 	var matches []*pb.Match
@@ -268,12 +270,15 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 			return nil, err
 		}
 
-		d.logger.Debugw("countdown matchmaker results",
-			"gamemode", cfg.Id,
-			"pending", len(updatedPending),
-			"deleted", len(deletedPending),
-			"matches", len(createdMatches),
-		)
+		if len(createdPending) != 0 || len(updatedPending) != 0 || len(deletedPending) != 0 || len(createdMatches) != 0 {
+			d.logger.Debugw("countdown matchmaker results",
+				"gamemode", cfg.Id,
+				"pending (exists)", len(updatedPending),
+				"pending (created)", len(createdPending),
+				"pending (deleted)", len(deletedPending),
+				"matches", len(createdMatches),
+			)
+		}
 
 		matches = createdMatches // assign the created matches to the return value
 
@@ -353,7 +358,9 @@ func (d *directorImpl) runMatchFunction(ctx context.Context, cfg *liveconfig.Gam
 		return nil, err
 	}
 
-	d.logger.Debugw("matchmaker finished", "gamemode", cfg.Id, "matches", len(matches))
+	if len(matches) != 0 {
+		d.logger.Debugw("matchmaker finished", "gamemode", cfg.Id, "matches", len(matches))
+	}
 
 	if len(matches) == 0 {
 		return nil, nil
