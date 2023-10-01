@@ -82,6 +82,7 @@ func (l *lobbyControllerImpl) run(wg *sync.WaitGroup, ctx context.Context) {
 				l.logger.Errorw("failed to allocate server for match", "error", err, "match", match)
 			}
 
+			l.logger.Infow("created matches", "matchCount", len(matchAllocationReqMap))
 			for match := range matchAllocationReqMap {
 				if err := l.notifier.MatchCreated(ctx, match); err != nil {
 					l.logger.Errorw("failed to send match created message", "error", err)
@@ -114,6 +115,8 @@ func (l *lobbyControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {
 func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]bool) map[*pb.Match]*v13.GameServerAllocation {
 	allocationReqs := make(map[*pb.Match]*v13.GameServerAllocation)
 
+	l.logger.Infow("creating matches from players", "playerCount", len(playerMap))
+
 	currentMatch := &pb.Match{
 		Id:         primitive.NewObjectID().String(),
 		GameModeId: "lobby",
@@ -121,6 +124,8 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 		Tickets:    make([]*pb.Ticket, 0),
 		Assignment: nil,
 	}
+
+	currentCount := 0
 	for playerId, autoTeleport := range playerMap {
 		currentMatch.Tickets = append(currentMatch.Tickets, &pb.Ticket{
 			PlayerIds:           []string{playerId.String()},
@@ -130,9 +135,10 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 			DequeueOnDisconnect: false,
 			InPendingMatch:      false,
 		})
+		currentCount++
 
-		if len(currentMatch.Tickets) >= l.playersPerMatch {
-			allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(len(currentMatch.Tickets)))
+		if currentCount >= l.playersPerMatch {
+			allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(currentCount))
 			currentMatch = &pb.Match{
 				Id:         primitive.NewObjectID().String(),
 				GameModeId: "lobby",
@@ -140,12 +146,15 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 				Tickets:    make([]*pb.Ticket, 0),
 				Assignment: nil,
 			}
+			currentCount = 0
 		}
 	}
 
-	if len(currentMatch.Tickets) > 0 {
+	if currentCount > 0 {
 		allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(len(currentMatch.Tickets)))
 	}
+
+	l.logger.Infow("created matches from players", "matchCount", len(allocationReqs), "playerCount", len(playerMap))
 
 	return allocationReqs
 }
