@@ -22,6 +22,7 @@ jobs:
   deploy:
     needs: "publish"
     runs-on: "ubuntu-latest"
+    if: "github.ref == 'refs/heads/main'"
     steps:
       - uses: "emortalmc/actions/argo-sync@main"
         with:
