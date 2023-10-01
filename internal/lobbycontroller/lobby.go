@@ -82,7 +82,9 @@ func (l *lobbyControllerImpl) run(wg *sync.WaitGroup, ctx context.Context) {
 				l.logger.Errorw("failed to allocate server for match", "error", err, "match", match)
 			}
 
-			l.logger.Infow("created matches", "matchCount", len(matchAllocationReqMap))
+			if len(matchAllocationReqMap) > 0 {
+				l.logger.Infow("created matches", "matchCount", len(matchAllocationReqMap))
+			}
 			for match := range matchAllocationReqMap {
 				if err := l.notifier.MatchCreated(ctx, match); err != nil {
 					l.logger.Errorw("failed to send match created message", "error", err)
@@ -115,7 +117,9 @@ func (l *lobbyControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {
 func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]bool) map[*pb.Match]*v13.GameServerAllocation {
 	allocationReqs := make(map[*pb.Match]*v13.GameServerAllocation)
 
-	l.logger.Infow("creating matches from players", "playerCount", len(playerMap))
+	if len(playerMap) > 0 {
+		l.logger.Infow("creating matches from players", "playerCount", len(playerMap))
+	}
 
 	currentMatch := &pb.Match{
 		Id:         primitive.NewObjectID().String(),
@@ -154,7 +158,9 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 		allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(len(currentMatch.Tickets)))
 	}
 
-	l.logger.Infow("created matches from players", "matchCount", len(allocationReqs), "playerCount", len(playerMap))
+	if len(allocationReqs) > 0 {
+		l.logger.Infow("created matches from players", "matchCount", len(allocationReqs), "playerCount", len(playerMap))
+	}
 
 	return allocationReqs
 }
