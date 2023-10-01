@@ -3,6 +3,7 @@ name: "Build and push"
 on:
   push:
     branches: [main]
+  pull_request: {}
 
 jobs:
   lint:
@@ -22,7 +23,8 @@ jobs:
     needs: "publish"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "emortalmc/actions/k8s-sync@main"
+      - uses: "emortalmc/actions/argo-sync@main"
         with:
-          manifest-path: "deployment.yaml"
-
+          deployment-name: "matchmaker"
+          values-path: "service/values/matchmaker.yaml"
+          deployments-repo-token: "${{ secrets.DEPLOYMENTS_REPO_TOKEN }}"
