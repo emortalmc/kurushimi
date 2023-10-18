@@ -6,14 +6,14 @@ require (
 	agones.dev/agones v1.32.0
 	github.com/emortalmc/live-config-parser/golang v0.0.0-20230410202351-2d1844753964
 	github.com/emortalmc/proto-specs/gen/go v0.0.0-20230826095248-4f00807f8cac
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/segmentio/kafka-go v0.4.43
 	github.com/spf13/viper v1.17.0
 	go.mongodb.org/mongo-driver v1.12.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	google.golang.org/grpc v1.58.2
+	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 	k8s.io/apimachinery v0.27.3
 	k8s.io/client-go v0.27.3
