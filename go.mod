@@ -10,7 +10,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/segmentio/kafka-go v0.4.43
 	github.com/spf13/viper v1.18.1
-	go.mongodb.org/mongo-driver v1.12.1
+	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	google.golang.org/grpc v1.59.0
