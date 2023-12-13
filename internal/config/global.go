@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	MongoDB   *MongoDBConfig
-	Kafka     *KafkaConfig
+	MongoDB   MongoDBConfig
+	Kafka     KafkaConfig
 	Namespace string
 
-	PartyService *PartyServiceConfig
+	PartyService PartyServiceConfig
 
 	LobbyFleetName string
 	LobbyMatchRate time.Duration
@@ -39,21 +39,22 @@ type PartyServiceConfig struct {
 	SettingsServicePort uint16
 }
 
-func LoadGlobalConfig() (config *Config, err error) {
-	viper.SetEnvPrefix("mm")
+func LoadGlobalConfig() (*Config, error) {
+	cfg := &Config{}
+
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 
-	if err = viper.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
 
-	if err = viper.Unmarshal(&config); err != nil {
+	if err := viper.UnmarshalExact(cfg); err != nil {
 		return nil, err
 	}
 
-	return
+	return cfg, nil
 }
