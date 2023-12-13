@@ -45,14 +45,14 @@ func Run(cfg *config.Config, logger *zap.SugaredLogger) {
 
 	_, agonesClient := kubernetes.CreateClients()
 
-	repo, err := repository.NewMongoRepository(repoCtx, repoWg, logger, &cfg.MongoDB)
+	repo, err := repository.NewMongoRepository(repoCtx, repoWg, logger, cfg.MongoDB)
 	if err != nil {
 		logger.Fatalw("failed to connect to mongo", err)
 	}
 
-	notifier := kafka.NewKafkaNotifier(ctx, wg, &cfg.Kafka, logger)
+	notifier := kafka.NewKafkaNotifier(ctx, wg, cfg.Kafka, logger)
 
-	kafka.NewConsumer(ctx, wg, &cfg.Kafka, logger, repo)
+	kafka.NewConsumer(ctx, wg, cfg.Kafka, logger, repo)
 
 	err = repo.HealthCheck(ctx, 5*time.Second)
 	if err != nil {
