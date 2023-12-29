@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-func Run(cfg *config.Config, logger *zap.SugaredLogger) {
+func Run(cfg config.Config, logger *zap.SugaredLogger) {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 	wg := &sync.WaitGroup{}
@@ -59,7 +59,7 @@ func Run(cfg *config.Config, logger *zap.SugaredLogger) {
 		logger.Fatalw("failed to initiate mongodb", err)
 	}
 
-	pSConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.SettingsServiceHost, cfg.PartyService.SettingsServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	pSConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.SettingsHost, cfg.PartyService.SettingsPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatalw("failed to connect to party service", err)
 	}
@@ -67,7 +67,7 @@ func Run(cfg *config.Config, logger *zap.SugaredLogger) {
 
 	allocationClient := agonesClient.AllocationV1().GameServerAllocations(cfg.Namespace)
 
-	pConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.ServiceHost, cfg.PartyService.ServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	pConn, err := grpc.Dial(fmt.Sprintf("%s:%d", cfg.PartyService.Host, cfg.PartyService.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Fatalw("failed to connect to party service", err)
 	}
@@ -75,7 +75,7 @@ func Run(cfg *config.Config, logger *zap.SugaredLogger) {
 	partyService := party.NewPartyServiceClient(pConn)
 
 	// Lobby controller
-	lobbyCtrl := lobbycontroller.NewLobbyController(ctx, wg, logger, cfg, notifier, allocationClient)
+	lobbyCtrl := lobbycontroller.NewLobbyController(ctx, wg, logger, cfg.Lobby, notifier, allocationClient)
 
 	service.RunServices(ctx, logger, wg, cfg, repo, notifier, gameModeController, lobbyCtrl, partyService, partySettingsService)
 

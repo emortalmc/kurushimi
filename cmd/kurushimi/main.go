@@ -8,10 +8,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.LoadGlobalConfig()
-	if err != nil {
-		log.Fatal("failed to load config", err)
-	}
+	cfg := config.LoadGlobalConfig()
 
 	unsugared, err := createLogger(cfg)
 	if err != nil {
@@ -22,7 +19,7 @@ func main() {
 	app.Run(cfg, logger)
 }
 
-func createLogger(cfg *config.Config) (logger *zap.Logger, err error) {
+func createLogger(cfg config.Config) (logger *zap.Logger, err error) {
 	if cfg.Development {
 		logger, err = zap.NewDevelopment()
 	} else {

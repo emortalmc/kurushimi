@@ -26,7 +26,7 @@ type consumer struct {
 	repo repository.Repository
 }
 
-func NewConsumer(ctx context.Context, wg *sync.WaitGroup, config *config.KafkaConfig, logger *zap.SugaredLogger, repo repository.Repository) {
+func NewConsumer(ctx context.Context, wg *sync.WaitGroup, config config.KafkaConfig, logger *zap.SugaredLogger, repo repository.Repository) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     []string{fmt.Sprintf("%s:%d", config.Host, config.Port)},
 		GroupID:     "matchmaker",

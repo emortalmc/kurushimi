@@ -20,12 +20,12 @@ import (
 	"sync"
 )
 
-func RunServices(ctx context.Context, logger *zap.SugaredLogger, wg *sync.WaitGroup, cfg *config.Config,
+func RunServices(ctx context.Context, logger *zap.SugaredLogger, wg *sync.WaitGroup, cfg config.Config,
 	repo repository.Repository, notifier kafka.Notifier, gameModeController liveconfig.GameModeConfigController,
 	lobbyCtrl lobbycontroller.LobbyController, partyService party.PartyServiceClient,
 	partySettingsService party.PartySettingsServiceClient) {
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GrpcPort))
 	if err != nil {
 		logger.Fatalw("failed to listen", err)
 	}
@@ -46,7 +46,7 @@ func RunServices(ctx context.Context, logger *zap.SugaredLogger, wg *sync.WaitGr
 
 	matchmaker.RegisterMatchmakerServer(s, newMatchmakerService(logger, repo, notifier, gameModeController, lobbyCtrl,
 		partyService, partySettingsService))
-	logger.Infow("listening for gRPC requests", "port", cfg.Port)
+	logger.Infow("listening for gRPC requests", "port", cfg.GrpcPort)
 
 	go func() {
 		if err := s.Serve(lis); err != nil {

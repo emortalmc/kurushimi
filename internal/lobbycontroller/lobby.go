@@ -35,13 +35,13 @@ type lobbyControllerImpl struct {
 	queuedPlayersLock sync.Mutex
 }
 
-func NewLobbyController(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg *config.Config, notifier kafka.Notifier,
+func NewLobbyController(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg config.LobbyConfig, notifier kafka.Notifier,
 	allocatorClient v1.GameServerAllocationInterface) LobbyController {
 
 	c := &lobbyControllerImpl{
-		fleetName:       cfg.LobbyFleetName,
-		matchmakingRate: cfg.LobbyMatchRate,
-		playersPerMatch: cfg.LobbyMatchSize,
+		fleetName:       cfg.FleetName,
+		matchmakingRate: cfg.MatchRate,
+		playersPerMatch: cfg.MatchSize,
 
 		logger:          logger,
 		notifier:        notifier,

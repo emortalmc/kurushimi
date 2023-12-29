@@ -27,7 +27,7 @@ type mongoRepository struct {
 	backfillCollection     *mongo.Collection
 }
 
-func NewMongoRepository(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg *config.MongoDBConfig) (Repository, error) {
+func NewMongoRepository(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg config.MongoDBConfig) (Repository, error) {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.URI).SetRegistry(createCodecRegistry()))
 	if err != nil {
 		return nil, err
