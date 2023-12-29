@@ -8,6 +8,7 @@ require (
 	github.com/emortalmc/proto-specs/gen/go v0.0.0-20231227235524-ca990cc793bf
 	github.com/google/uuid v1.5.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
