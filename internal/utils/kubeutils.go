@@ -1,38 +1,32 @@
 package utils
 
 import (
+	"errors"
 	"flag"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"k8s.io/utils/env"
 	"path/filepath"
 )
-
-func IsInCluster() bool {
-	return env.GetString("KUBERNETES_SERVICE_HOST", "") != ""
-}
 
 func CreateKubernetesConfig() (*rest.Config, error) {
 	var config *rest.Config
 	var err error
 
-	if IsInCluster() {
-		config, err = rest.InClusterConfig()
+	config, err = rest.InClusterConfig()
+	if !errors.Is(err, rest.ErrNotInCluster) {
+		return config, err
+	}
+
+	var kubeConfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeConfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		var kubeConfig *string
-		if home := homedir.HomeDir(); home != "" {
-			kubeConfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
-			kubeConfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		}
-		flag.Parse()
-
-		config, err = clientcmd.BuildConfigFromFlags("", *kubeConfig)
+		kubeConfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
+	flag.Parse()
 
-	if err != nil {
-		return nil, err
-	}
+	config, err = clientcmd.BuildConfigFromFlags("", *kubeConfig)
+
 	return config, nil
 }

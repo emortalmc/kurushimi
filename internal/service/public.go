@@ -7,14 +7,13 @@ import (
 	"github.com/emortalmc/kurushimi/internal/kafka"
 	"github.com/emortalmc/kurushimi/internal/lobbycontroller"
 	"github.com/emortalmc/kurushimi/internal/repository"
+	"github.com/emortalmc/kurushimi/internal/utils/grpczap"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/matchmaker"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/party"
-	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
 	"net"
 	"sync"
@@ -30,14 +29,13 @@ func RunServices(ctx context.Context, logger *zap.SugaredLogger, wg *sync.WaitGr
 		logger.Fatalw("failed to listen", err)
 	}
 
+	opts := []logging.Option{
+		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
+		// Add any other option (check functions starting with logging.With).
+	}
+
 	s := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		grpczap.UnaryServerInterceptor(logger.Desugar(), grpczap.WithLevels(func(code codes.Code) zapcore.Level {
-			if code != codes.Internal && code != codes.Unavailable && code != codes.Unknown {
-				return zapcore.DebugLevel
-			} else {
-				return zapcore.ErrorLevel
-			}
-		})),
+		logging.UnaryServerInterceptor(grpczap.InterceptorLogger(logger.Desugar()), opts...),
 	))
 
 	if cfg.Development {
