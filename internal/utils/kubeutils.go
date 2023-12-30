@@ -28,5 +28,5 @@ func CreateKubernetesConfig() (*rest.Config, error) {
 
 	config, err = clientcmd.BuildConfigFromFlags("", *kubeConfig)
 
-	return config, nil
+	return config, err
 }
