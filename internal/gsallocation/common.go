@@ -45,7 +45,7 @@ func AllocateServer(ctx context.Context, allocationClient v1.GameServerAllocatio
 		return fmt.Errorf("allocation was not successful: %s", allocation.State)
 	}
 
-	protocolVersion, versionName := parseVersions(resp.Annotations)
+	protocolVersion, versionName := parseVersions(allocation.Metadata.Annotations)
 
 	match.Assignment = &pb.Assignment{
 		ServerId:        allocation.GameServerName,
@@ -54,11 +54,12 @@ func AllocateServer(ctx context.Context, allocationClient v1.GameServerAllocatio
 		ProtocolVersion: protocolVersion,
 		VersionName:     versionName,
 	}
+
 	return err
 }
 
 func parseVersions(annotations map[string]string) (protocolVersion *int64, versionName *string) {
-	protocolStr, ok := annotations["agones.dev/emc-protocol-version"]
+	protocolStr, ok := annotations["agones.dev/sdk-emc-protocol-version"]
 	if ok {
 		protocol, err := strconv.Atoi(protocolStr)
 		if err == nil {
@@ -66,7 +67,7 @@ func parseVersions(annotations map[string]string) (protocolVersion *int64, versi
 		}
 	}
 
-	version, ok := annotations["agones.dev/emc-version-name"]
+	version, ok := annotations["agones.dev/sdk-emc-version-name"]
 	if ok {
 		versionName = &version
 	}
