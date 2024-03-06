@@ -20,7 +20,7 @@ func CreatePlayerBasedSelector(fleetName string, match *pb.Match, playerCount in
 						MatchLabels: map[string]string{
 							"agones.dev/fleet": fleetName,
 						},
-						MatchExpressions: []v1.LabelSelectorRequirement{notOudatedExpression},
+						MatchExpressions: []v1.LabelSelectorRequirement{notOutdatedExpression},
 					},
 					Players: &allocatorv1.PlayerSelector{
 						MinAvailable: playerCount,

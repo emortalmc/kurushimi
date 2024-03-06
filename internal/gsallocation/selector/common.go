@@ -10,7 +10,7 @@ var (
 	AllocatedState = agonesv1.GameServerStateAllocated
 	ReadyState     = agonesv1.GameServerStateReady
 
-	notOudatedExpression = v1.LabelSelectorRequirement{
+	notOutdatedExpression = v1.LabelSelectorRequirement{
 		Key:      "emortal.dev/outdated",
 		Operator: v1.LabelSelectorOpDoesNotExist,
 	}
@@ -23,7 +23,7 @@ func createReadySelector(fleetName string) allocatorv1.GameServerSelector {
 				"agones.dev/fleet": fleetName,
 			},
 
-			MatchExpressions: []v1.LabelSelectorRequirement{notOudatedExpression},
+			MatchExpressions: []v1.LabelSelectorRequirement{notOutdatedExpression},
 		},
 
 		GameServerState: &ReadyState,
