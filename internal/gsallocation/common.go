@@ -8,6 +8,7 @@ import (
 	"github.com/emortalmc/kurushimi/internal/utils"
 	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log"
 	"strconv"
 	"sync"
 )
@@ -44,6 +45,9 @@ func AllocateServer(ctx context.Context, allocationClient v1.GameServerAllocatio
 	if allocation.State != v12.GameServerAllocationAllocated {
 		return fmt.Errorf("allocation was not successful: %s", allocation.State)
 	}
+
+	log.Printf("Allocated: %+v", allocation)
+	log.Printf("Metadata: %+v", allocation.Metadata)
 
 	protocolVersion, versionName := parseVersions(allocation.Metadata.Annotations)
 
