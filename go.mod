@@ -5,7 +5,7 @@ go 1.21
 require (
 	agones.dev/agones v1.37.0
 	github.com/emortalmc/live-config-parser/golang v0.0.0-20231228020729-d2b6294e5968
-	github.com/emortalmc/proto-specs/gen/go v0.0.0-20231227235524-ca990cc793bf
+	github.com/emortalmc/proto-specs/gen/go v0.0.0-20240502205605-cd9d53dc3c61
 	github.com/google/uuid v1.5.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
 	github.com/segmentio/kafka-go v0.4.47
