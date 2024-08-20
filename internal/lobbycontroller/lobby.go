@@ -144,7 +144,7 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 		if currentCount >= l.playersPerMatch {
 			allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(currentCount))
 			currentMatch = &pb.Match{
-				Id:         primitive.NewObjectID().String(),
+				Id:         primitive.NewObjectID().Hex(),
 				GameModeId: "lobby",
 				MapId:      nil,
 				Tickets:    make([]*pb.Ticket, 0),

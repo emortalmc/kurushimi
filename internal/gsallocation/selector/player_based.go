@@ -5,7 +5,6 @@ import (
 	allocatorv1 "agones.dev/agones/pkg/apis/allocation/v1"
 	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math"
 )
 
 // CreatePlayerBasedSelector selects a GameServer where there is no 'match'.
@@ -22,9 +21,10 @@ func CreatePlayerBasedSelector(fleetName string, match *pb.Match, playerCount in
 						},
 						MatchExpressions: []v1.LabelSelectorRequirement{notOutdatedExpression},
 					},
-					Players: &allocatorv1.PlayerSelector{
-						MinAvailable: playerCount,
-						MaxAvailable: math.MaxInt,
+					Counters: map[string]allocatorv1.CounterSelector{
+						"players": {
+							MinAvailable: playerCount,
+						},
 					},
 					GameServerState: &AllocatedState,
 				},
