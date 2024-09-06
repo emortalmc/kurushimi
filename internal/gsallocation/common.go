@@ -1,29 +1,33 @@
 package gsallocation
 
 import (
-	v12 "agones.dev/agones/pkg/apis/allocation/v1"
+	allocv1 "agones.dev/agones/pkg/apis/allocation/v1"
 	v1 "agones.dev/agones/pkg/client/clientset/versioned/typed/allocation/v1"
 	"context"
 	"fmt"
 	"github.com/emortalmc/kurushimi/internal/utils"
 	pb "github.com/emortalmc/proto-specs/gen/go/model/matchmaker"
-	v13 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"strconv"
 	"sync"
 )
 
 func AllocateServers(ctx context.Context, allocationClient v1.GameServerAllocationInterface,
-	allocations map[*pb.Match]*v12.GameServerAllocation) map[*pb.Match]error {
+	allocations map[*pb.Match]*allocv1.GameServerAllocation) map[*pb.Match]error {
 
 	errors := make(map[*pb.Match]error)
+	errorsLock := sync.Mutex{}
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(allocations))
 
 	for match, allocation := range allocations {
-		go func(fMatch *pb.Match, fAllocation *v12.GameServerAllocation) {
+		go func(fMatch *pb.Match, fAllocation *allocv1.GameServerAllocation) {
 			defer wg.Done()
 			if err := AllocateServer(ctx, allocationClient, fMatch, fAllocation); err != nil {
+				errorsLock.Lock()
+				defer errorsLock.Unlock()
 				errors[fMatch] = err
 			}
 		}(match, allocation)
@@ -34,15 +38,15 @@ func AllocateServers(ctx context.Context, allocationClient v1.GameServerAllocati
 }
 
 func AllocateServer(ctx context.Context, allocationClient v1.GameServerAllocationInterface,
-	match *pb.Match, allocationReq *v12.GameServerAllocation) error {
+	match *pb.Match, allocationReq *allocv1.GameServerAllocation) error {
 
-	resp, err := allocationClient.Create(ctx, allocationReq, v13.CreateOptions{})
+	resp, err := allocationClient.Create(ctx, allocationReq, kubev1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create allocation: %w", err)
 	}
 
 	allocation := resp.Status
-	if allocation.State != v12.GameServerAllocationAllocated {
+	if allocation.State != allocv1.GameServerAllocationAllocated {
 		return fmt.Errorf("allocation was not successful: %s", allocation.State)
 	}
 
