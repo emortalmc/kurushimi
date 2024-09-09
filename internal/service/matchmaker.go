@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/emortalmc/kurushimi/internal/kafka"
-	"github.com/emortalmc/kurushimi/internal/lobbycontroller"
 	"github.com/emortalmc/kurushimi/internal/repository"
 	"github.com/emortalmc/kurushimi/internal/repository/model"
+	"github.com/emortalmc/kurushimi/internal/simplecontroller"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/matchmaker"
 	pbparty "github.com/emortalmc/proto-specs/gen/go/grpc/party"
@@ -29,14 +29,16 @@ type matchmakerService struct {
 	notifier      kafka.Notifier
 	cfgController liveconfig.GameModeConfigController
 
-	lobbyController lobbycontroller.LobbyController
+	lobbyController    simplecontroller.SimpleController
+	velocityController simplecontroller.SimpleController
 
 	partyService         pbparty.PartyServiceClient
 	partySettingsService pbparty.PartySettingsServiceClient
 }
 
 func newMatchmakerService(logger *zap.SugaredLogger, repository repository.Repository, notifier kafka.Notifier,
-	cfgController liveconfig.GameModeConfigController, lobbyController lobbycontroller.LobbyController,
+	cfgController liveconfig.GameModeConfigController, lobbyController simplecontroller.SimpleController,
+	velocityController simplecontroller.SimpleController,
 	partyService pbparty.PartyServiceClient, partySettingsService pbparty.PartySettingsServiceClient) matchmaker.MatchmakerServer {
 
 	return &matchmakerService{
@@ -45,7 +47,8 @@ func newMatchmakerService(logger *zap.SugaredLogger, repository repository.Repos
 		notifier:      notifier,
 		cfgController: cfgController,
 
-		lobbyController: lobbyController,
+		lobbyController:    lobbyController,
+		velocityController: velocityController,
 
 		partyService:         partyService,
 		partySettingsService: partySettingsService,
@@ -284,15 +287,19 @@ func (m *matchmakerService) SendPlayersToLobby(ctx context.Context, request *mat
 	return &matchmaker.SendPlayerToLobbyResponse{}, nil
 }
 
-func (m *matchmakerService) QueueInitialLobbyByPlayer(_ context.Context, request *matchmaker.QueueInitialLobbyByPlayerRequest) (*matchmaker.QueueInitialLobbyByPlayerResponse, error) {
+func (m *matchmakerService) LoginQueueByPlayer(_ context.Context, request *matchmaker.LoginQueueByPlayerRequest) (*matchmaker.LoginQueueByPlayerResponse, error) {
 	playerId, err := uuid.Parse(request.PlayerId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid player_id")
 	}
 
-	m.lobbyController.QueuePlayer(playerId, false)
+	if !request.IsProxy {
+		m.lobbyController.QueuePlayer(playerId, false)
+	} else {
+		m.velocityController.QueuePlayer(playerId, false)
+	}
 
-	return &matchmaker.QueueInitialLobbyByPlayerResponse{}, nil
+	return &matchmaker.LoginQueueByPlayerResponse{}, nil
 }
 
 var (

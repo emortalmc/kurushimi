@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/emortalmc/kurushimi/internal/config"
 	"github.com/emortalmc/kurushimi/internal/kafka"
-	"github.com/emortalmc/kurushimi/internal/lobbycontroller"
 	"github.com/emortalmc/kurushimi/internal/repository"
+	"github.com/emortalmc/kurushimi/internal/simplecontroller"
 	"github.com/emortalmc/kurushimi/internal/utils/grpczap"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/matchmaker"
@@ -21,8 +21,8 @@ import (
 
 func RunServices(ctx context.Context, logger *zap.SugaredLogger, wg *sync.WaitGroup, cfg config.Config,
 	repo repository.Repository, notifier kafka.Notifier, gameModeController liveconfig.GameModeConfigController,
-	lobbyCtrl lobbycontroller.LobbyController, partyService party.PartyServiceClient,
-	partySettingsService party.PartySettingsServiceClient) {
+	lobbyCtrl simplecontroller.SimpleController, velocityCtrl simplecontroller.SimpleController,
+	partyService party.PartyServiceClient, partySettingsService party.PartySettingsServiceClient) {
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GrpcPort))
 	if err != nil {
@@ -43,7 +43,7 @@ func RunServices(ctx context.Context, logger *zap.SugaredLogger, wg *sync.WaitGr
 	}
 
 	matchmaker.RegisterMatchmakerServer(s, newMatchmakerService(logger, repo, notifier, gameModeController, lobbyCtrl,
-		partyService, partySettingsService))
+		velocityCtrl, partyService, partySettingsService))
 	logger.Infow("listening for gRPC requests", "port", cfg.GrpcPort)
 
 	go func() {

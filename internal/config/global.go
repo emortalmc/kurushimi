@@ -24,6 +24,10 @@ const (
 	lobbyMatchRateFlag = "lobby-match-rate"
 	lobbyMatchSizeFlag = "lobby-match-size"
 
+	proxyFleetNameFlag = "proxy-fleet-name"
+	proxyMatchRateFlag = "proxy-match-rate"
+	proxyMatchSizeFlag = "proxy-match-size"
+
 	grpcPortFlag    = "port"
 	developmentFlag = "development"
 )
@@ -35,6 +39,7 @@ type Config struct {
 	PartyService PartyServiceConfig
 
 	Lobby LobbyConfig
+	Proxy ProxyConfig
 
 	Namespace   string
 	GrpcPort    int
@@ -64,6 +69,12 @@ type LobbyConfig struct {
 	MatchSize int
 }
 
+type ProxyConfig struct {
+	FleetName string
+	MatchRate time.Duration
+	MatchSize int
+}
+
 func LoadGlobalConfig() Config {
 	// Kafka
 	viper.SetDefault(kafkaHostFlag, "localhost")
@@ -79,6 +90,10 @@ func LoadGlobalConfig() Config {
 	viper.SetDefault(lobbyFleetNameFlag, "lobby")
 	viper.SetDefault(lobbyMatchRateFlag, 175_000_000)
 	viper.SetDefault(lobbyMatchSizeFlag, 50)
+	// Proxy
+	viper.SetDefault(proxyFleetNameFlag, "velocity")
+	viper.SetDefault(proxyMatchRateFlag, 175_000_000)
+	viper.SetDefault(proxyMatchSizeFlag, 50)
 	// Global
 	viper.SetDefault(namespaceFlag, "emortalmc")
 	viper.SetDefault(grpcPortFlag, 1007)
@@ -94,6 +109,9 @@ func LoadGlobalConfig() Config {
 	pflag.String(lobbyFleetNameFlag, viper.GetString(lobbyFleetNameFlag), "Lobby fleet name")
 	pflag.Duration(lobbyMatchRateFlag, viper.GetDuration(lobbyMatchRateFlag), "Delay between creating lobby matches")
 	pflag.Int32(lobbyMatchSizeFlag, viper.GetInt32(lobbyMatchSizeFlag), "Maximum size of a lobby (accounts for players already in the lobby)")
+	pflag.String(proxyFleetNameFlag, viper.GetString(proxyFleetNameFlag), "Proxy fleet name (default velocity)")
+	pflag.Duration(proxyMatchRateFlag, viper.GetDuration(proxyMatchRateFlag), "Delay between creating proxy matches")
+	pflag.Int32(proxyMatchSizeFlag, viper.GetInt32(proxyMatchSizeFlag), "Maximum size of a proxy (accounts for players already in the proxy)")
 	pflag.String(namespaceFlag, viper.GetString(namespaceFlag), "Namespace that the resource is in")
 	pflag.Int32(grpcPortFlag, viper.GetInt32(grpcPortFlag), "gRPC port of THIS service")
 	pflag.Bool(developmentFlag, viper.GetBool(developmentFlag), "Development mode")
@@ -111,6 +129,9 @@ func LoadGlobalConfig() Config {
 	runtime.Must(viper.BindEnv(lobbyFleetNameFlag))
 	runtime.Must(viper.BindEnv(lobbyMatchRateFlag))
 	runtime.Must(viper.BindEnv(lobbyMatchSizeFlag))
+	runtime.Must(viper.BindEnv(proxyFleetNameFlag))
+	runtime.Must(viper.BindEnv(proxyMatchRateFlag))
+	runtime.Must(viper.BindEnv(proxyMatchSizeFlag))
 	runtime.Must(viper.BindEnv(namespaceFlag))
 	runtime.Must(viper.BindEnv(grpcPortFlag))
 	runtime.Must(viper.BindEnv(developmentFlag))
@@ -133,6 +154,11 @@ func LoadGlobalConfig() Config {
 			FleetName: viper.GetString(lobbyFleetNameFlag),
 			MatchRate: viper.GetDuration(lobbyMatchRateFlag),
 			MatchSize: int(viper.GetInt32(lobbyMatchSizeFlag)),
+		},
+		Proxy: ProxyConfig{
+			FleetName: viper.GetString(proxyFleetNameFlag),
+			MatchRate: viper.GetDuration(proxyMatchRateFlag),
+			MatchSize: int(viper.GetInt32(proxyMatchSizeFlag)),
 		},
 		Namespace:   viper.GetString(namespaceFlag),
 		GrpcPort:    int(viper.GetInt32(grpcPortFlag)),

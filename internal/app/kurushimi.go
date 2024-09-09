@@ -6,9 +6,9 @@ import (
 	"github.com/emortalmc/kurushimi/internal/config"
 	"github.com/emortalmc/kurushimi/internal/director"
 	"github.com/emortalmc/kurushimi/internal/kafka"
-	"github.com/emortalmc/kurushimi/internal/lobbycontroller"
 	"github.com/emortalmc/kurushimi/internal/repository"
 	"github.com/emortalmc/kurushimi/internal/service"
+	"github.com/emortalmc/kurushimi/internal/simplecontroller"
 	"github.com/emortalmc/kurushimi/internal/utils/kubernetes"
 	"github.com/emortalmc/live-config-parser/golang/pkg/liveconfig"
 	"github.com/emortalmc/proto-specs/gen/go/grpc/party"
@@ -74,10 +74,17 @@ func Run(cfg config.Config, logger *zap.SugaredLogger) {
 
 	partyService := party.NewPartyServiceClient(pConn)
 
-	// Lobby controller
-	lobbyCtrl := lobbycontroller.NewLobbyController(ctx, wg, logger, cfg.Lobby, notifier, allocationClient)
+	// Simple controllers
+	lobbyCfg := cfg.Lobby
+	proxyCfg := cfg.Proxy
 
-	service.RunServices(ctx, logger, wg, cfg, repo, notifier, gameModeController, lobbyCtrl, partyService, partySettingsService)
+	lobbyCtrl := simplecontroller.NewJoinController(ctx, wg, logger, notifier, allocationClient,
+		lobbyCfg.FleetName, "lobby", lobbyCfg.MatchRate, lobbyCfg.MatchSize)
+
+	velocityCtrl := simplecontroller.NewJoinController(ctx, wg, logger, notifier, allocationClient,
+		proxyCfg.FleetName, "proxy", proxyCfg.MatchRate, proxyCfg.MatchSize)
+
+	service.RunServices(ctx, logger, wg, cfg, repo, notifier, gameModeController, lobbyCtrl, velocityCtrl, partyService, partySettingsService)
 
 	directR := director.New(logger, repo, notifier, allocationClient, gameModeController)
 	directR.Start(ctx)

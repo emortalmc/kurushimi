@@ -1,10 +1,9 @@
-package lobbycontroller
+package simplecontroller
 
 import (
 	v13 "agones.dev/agones/pkg/apis/allocation/v1"
 	v1 "agones.dev/agones/pkg/client/clientset/versioned/typed/allocation/v1"
 	"context"
-	"github.com/emortalmc/kurushimi/internal/config"
 	"github.com/emortalmc/kurushimi/internal/gsallocation"
 	"github.com/emortalmc/kurushimi/internal/gsallocation/selector"
 	"github.com/emortalmc/kurushimi/internal/kafka"
@@ -17,12 +16,15 @@ import (
 	"time"
 )
 
-type LobbyController interface {
+// SimpleController is a controller to allocate players into matches for simple servers - not gamemodes.
+// It is necessary due to Agones behaviours we want to work around for lobbies and proxies.
+type SimpleController interface {
 	QueuePlayer(playerId uuid.UUID, autoTeleport bool)
 }
 
-type lobbyControllerImpl struct {
+type simpleControllerImpl struct {
 	fleetName       string
+	gameModeId      string
 	matchmakingRate time.Duration
 	playersPerMatch int
 
@@ -35,13 +37,15 @@ type lobbyControllerImpl struct {
 	queuedPlayersLock sync.Mutex
 }
 
-func NewLobbyController(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, cfg config.LobbyConfig, notifier kafka.Notifier,
-	allocatorClient v1.GameServerAllocationInterface) LobbyController {
+func NewJoinController(ctx context.Context, wg *sync.WaitGroup, logger *zap.SugaredLogger, notifier kafka.Notifier,
+	allocatorClient v1.GameServerAllocationInterface, fleetName string, gameModeID string, matchRate time.Duration,
+	playersPerMatch int) SimpleController {
 
-	c := &lobbyControllerImpl{
-		fleetName:       cfg.FleetName,
-		matchmakingRate: cfg.MatchRate,
-		playersPerMatch: cfg.MatchSize,
+	c := &simpleControllerImpl{
+		fleetName:       fleetName,
+		gameModeId:      gameModeID,
+		matchmakingRate: matchRate,
+		playersPerMatch: playersPerMatch,
 
 		logger:          logger,
 		notifier:        notifier,
@@ -56,14 +60,14 @@ func NewLobbyController(ctx context.Context, wg *sync.WaitGroup, logger *zap.Sug
 	return c
 }
 
-func (l *lobbyControllerImpl) QueuePlayer(playerId uuid.UUID, autoTeleport bool) {
+func (l *simpleControllerImpl) QueuePlayer(playerId uuid.UUID, autoTeleport bool) {
 	l.queuedPlayersLock.Lock()
 	defer l.queuedPlayersLock.Unlock()
 
 	l.queuedPlayers[playerId] = autoTeleport
 }
 
-func (l *lobbyControllerImpl) run(wg *sync.WaitGroup, ctx context.Context) {
+func (l *simpleControllerImpl) run(wg *sync.WaitGroup, ctx context.Context) {
 	go func() {
 		for {
 			if ctx.Err() != nil {
@@ -100,7 +104,7 @@ func (l *lobbyControllerImpl) run(wg *sync.WaitGroup, ctx context.Context) {
 	}()
 }
 
-func (l *lobbyControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {
+func (l *simpleControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {
 	l.queuedPlayersLock.Lock()
 	defer l.queuedPlayersLock.Unlock()
 
@@ -114,7 +118,7 @@ func (l *lobbyControllerImpl) resetQueuedPlayers() map[uuid.UUID]bool {
 	return queuedPlayers
 }
 
-func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]bool) map[*pb.Match]*v13.GameServerAllocation {
+func (l *simpleControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]bool) map[*pb.Match]*v13.GameServerAllocation {
 	allocationReqs := make(map[*pb.Match]*v13.GameServerAllocation)
 
 	if len(playerMap) > 0 {
@@ -123,7 +127,7 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 
 	currentMatch := &pb.Match{
 		Id:         primitive.NewObjectID().String(),
-		GameModeId: "lobby",
+		GameModeId: l.gameModeId,
 		MapId:      nil,
 		Tickets:    make([]*pb.Ticket, 0),
 		Assignment: nil,
@@ -134,7 +138,7 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 		currentMatch.Tickets = append(currentMatch.Tickets, &pb.Ticket{
 			PlayerIds:           []string{playerId.String()},
 			CreatedAt:           timestamppb.Now(),
-			GameModeId:          "lobby",
+			GameModeId:          l.gameModeId,
 			AutoTeleport:        autoTeleport,
 			DequeueOnDisconnect: false,
 			InPendingMatch:      false,
@@ -145,7 +149,7 @@ func (l *lobbyControllerImpl) createMatchesFromPlayers(playerMap map[uuid.UUID]b
 			allocationReqs[currentMatch] = selector.CreatePlayerBasedSelector(l.fleetName, currentMatch, int64(currentCount))
 			currentMatch = &pb.Match{
 				Id:         primitive.NewObjectID().Hex(),
-				GameModeId: "lobby",
+				GameModeId: l.gameModeId,
 				MapId:      nil,
 				Tickets:    make([]*pb.Ticket, 0),
 				Assignment: nil,
