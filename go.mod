@@ -4,7 +4,7 @@ go 1.23
 
 require (
 	agones.dev/agones v1.42.0
-	github.com/emortalmc/live-config-parser/golang v0.0.0-20231228020729-d2b6294e5968
+	github.com/emortalmc/live-config-parser/golang v0.0.0-20241017204413-d79a69a6199f
 	github.com/emortalmc/proto-specs/gen/go v0.0.0-20240909151321-29fd34625282
 	github.com/google/uuid v1.5.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
