@@ -11,6 +11,8 @@ github.com/emicklei/go-restful/v3 v3.11.0 h1:rAQeMHw1c7zTmncogyy8VvRZwtkmkZ4FxER
 github.com/emicklei/go-restful/v3 v3.11.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/emortalmc/live-config-parser/golang v0.0.0-20231228020729-d2b6294e5968 h1:ED4bQH4klluvp53DQBXKt4f4iZQf1NmYRfOVPRNNsfU=
 github.com/emortalmc/live-config-parser/golang v0.0.0-20231228020729-d2b6294e5968/go.mod h1:CbOcbHzizWqxyflDiBKyU9LIVxZw6t5V2NlWLVfgkwY=
+github.com/emortalmc/live-config-parser/golang v0.0.0-20241017204413-d79a69a6199f h1:s8sxggs83IWLpeIg3NGC3jvoFnCr+PmuVhOXtYH5Zus=
+github.com/emortalmc/live-config-parser/golang v0.0.0-20241017204413-d79a69a6199f/go.mod h1:CbOcbHzizWqxyflDiBKyU9LIVxZw6t5V2NlWLVfgkwY=
 github.com/emortalmc/proto-specs/gen/go v0.0.0-20231227235524-ca990cc793bf h1:hAMusd3Zu4w9wJBMsNfPitbeu939vSYj1Q1x9ZrbO7U=
 github.com/emortalmc/proto-specs/gen/go v0.0.0-20231227235524-ca990cc793bf/go.mod h1:se+tHcK9FWxeadkxLF5uj+SPauEye0X+Iq6cGczXGJY=
 github.com/emortalmc/proto-specs/gen/go v0.0.0-20240909151212-bfb0f4305228 h1:oQxnDDw5FFkDm8qdWLRbibaijSKpIsjRuFtsg7sFcNk=
