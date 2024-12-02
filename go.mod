@@ -6,7 +6,7 @@ require (
 	agones.dev/agones v1.42.0
 	github.com/emortalmc/live-config-parser/golang v0.0.0-20231228020729-d2b6294e5968
 	github.com/emortalmc/proto-specs/gen/go v0.0.0-20240909151321-29fd34625282
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1
 	github.com/segmentio/kafka-go v0.4.47
 	github.com/spf13/pflag v1.0.5
